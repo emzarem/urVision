@@ -12,56 +12,113 @@ using namespace std;
 const float X_SCALE = 0.15;
 const float Y_SCALE = 0.15;
 
-const int MAX_SCHARR_R_VALUE = 800;
+const int MAX_EDGE_THRESHOLD = 100;
+const int max_value_H = 360 / 2;
+const int max_value = 255;
 
 // Global variables
-const int max_value = 255;
-int low_b = 0, low_g = 125, low_r = 100;
-int high_b = 85, high_g = max_value, high_r = 200;
+int low_H = 32, low_S = 95, low_V = 81;
+int high_H = 87, high_S = max_value, high_V = max_value;
 
-int edgeThreshScharr = 500;
+// For inRange Thresholding
+int lowerThreshold = 128;
+
+// Erosion, dilation variables
+Mat erosion_src, dilation_src, erosion_dst, dilation_dst;
+
+int edgeThresh1 = 100;
+int edgeThresh2 = 3;
+
+int erosion_elem = 2;
+int erosion_size = 2;
+int dilation_elem = 2;
+int dilation_size = 9;
+
+int const max_elem = 2;
+int const max_kernel_size = 21;
 
 // Different image holders
-Mat frame, scaledFrame, greenFrame, blurFrame, cannyEdges, edgeFrame;
+Mat frame, scaledFrame, colorMask, greenFrame, blurFrame, cannyEdges, edgeFrame, thresholdFrame, circlesFrame;
 
 const String window_capture_name = "Current Frame";
 const String window_color_threshold_name = "Color Threshold";
 const String window_edge_detection = "Edge Detection";
+const String window_test = "Window Test";
+const String window_erosions = "Erosions Test";
+const String window_dilations = "Dilations Test";
 
-static void on_edge_thresh_trackbar(int, void *)
+/* Function Prototypes */
+void Erosion(int, void*);
+void Dilation(int, void*);
+
+/* Function Definitions */
+static void on_edge_thresh1_trackbar(int, void *)
 {
-	setTrackbarPos("r", window_edge_detection, edgeThreshScharr);
+	setTrackbarPos("thresh1", window_edge_detection, edgeThresh1);
 }
 
-static void on_low_b_thresh_trackbar(int, void *)
+static void on_low_H_thresh_trackbar(int, void *)
 {
-	low_b = min(high_b - 1, low_b);
-	setTrackbarPos("Low b", window_color_threshold_name, low_b);
+	low_H = min(high_H - 1, low_H);
+	setTrackbarPos("Low H", window_color_threshold_name, low_H);
 }
-static void on_high_b_thresh_trackbar(int, void *)
+static void on_high_H_thresh_trackbar(int, void *)
 {
-	high_b = max(high_b, low_b + 1);
-	setTrackbarPos("High b", window_color_threshold_name, high_b);
+	high_H = max(high_H, low_H + 1);
+	setTrackbarPos("High H", window_color_threshold_name, high_H);
 }
-static void on_low_g_thresh_trackbar(int, void *)
+static void on_low_S_thresh_trackbar(int, void *)
 {
-	low_g = min(high_g - 1, low_g);
-	setTrackbarPos("Low g", window_color_threshold_name, low_g);
+	low_S = min(high_S - 1, low_S);
+	setTrackbarPos("Low S", window_color_threshold_name, low_S);
 }
-static void on_high_g_thresh_trackbar(int, void *)
+static void on_high_S_thresh_trackbar(int, void *)
 {
-	high_g = max(high_g, low_g + 1);
-	setTrackbarPos("High g", window_color_threshold_name, high_g);
+	high_S = max(high_S, low_S + 1);
+	setTrackbarPos("High S", window_color_threshold_name, high_S);
 }
-static void on_low_r_thresh_trackbar(int, void *)
+static void on_low_V_thresh_trackbar(int, void *)
 {
-	low_r = min(high_r - 1, low_r);
-	setTrackbarPos("Low r", window_color_threshold_name, low_r);
+	low_V = min(high_V - 1, low_V);
+	setTrackbarPos("Low V", window_color_threshold_name, low_V);
 }
-static void on_high_r_thresh_trackbar(int, void *)
+static void on_high_V_thresh_trackbar(int, void *)
 {
-	high_r = max(high_r, low_r + 1);
-	setTrackbarPos("High r", window_color_threshold_name, high_r);
+	high_V = max(high_V, low_V + 1);
+	setTrackbarPos("High V", window_color_threshold_name, high_V);
+}
+
+/* erosions  */
+void Erosion(int, void*)
+{
+	int erosion_type;
+	if (erosion_elem == 0) { erosion_type = MORPH_RECT; }
+	else if (erosion_elem == 1) { erosion_type = MORPH_CROSS; }
+	else if (erosion_elem == 2) { erosion_type = MORPH_ELLIPSE; }
+
+	Mat element = getStructuringElement(erosion_type,
+		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+		Point(erosion_size, erosion_size));
+
+	/// Apply the erosion operation
+	erode(erosion_src, erosion_dst, element);
+	imshow(window_erosions, erosion_dst);
+}
+
+/* dilations  */
+void Dilation(int, void*)
+{
+	int dilation_type;
+	if (dilation_elem == 0) { dilation_type = MORPH_RECT; }
+	else if (dilation_elem == 1) { dilation_type = MORPH_CROSS; }
+	else if (dilation_elem == 2) { dilation_type = MORPH_ELLIPSE; }
+
+	Mat element = getStructuringElement(dilation_type,
+		Size(2 * dilation_size + 1, 2 * dilation_size + 1),
+		Point(dilation_size, dilation_size));
+	/// Apply the dilation operation
+	dilate(dilation_src, dilation_dst, element);
+	imshow(window_dilations, dilation_dst);
 }
 
 static void help()
@@ -91,50 +148,106 @@ int main(int argc, const char** argv)
 		return -1;
 	}
 
+	// Convert from BGR to HSV colorspace	
+	cvtColor(frame, frame, COLOR_BGR2HSV);
 	// Resize image
 	resize(frame, scaledFrame, Size(0, 0), X_SCALE, Y_SCALE, INTER_LINEAR);
-
-	// Set up output images
-	greenFrame.create(scaledFrame.size(), scaledFrame.type());
 
 	// Create the windows
 	namedWindow(window_capture_name);
 	namedWindow(window_color_threshold_name);
 	namedWindow(window_edge_detection);
 
-	// Trackbars to set thresholds for rgb values
-	createTrackbar("Low B", window_color_threshold_name, &low_b, max_value, on_low_b_thresh_trackbar);
-	createTrackbar("High B", window_color_threshold_name, &high_b, max_value, on_high_b_thresh_trackbar);
-	createTrackbar("Low G", window_color_threshold_name, &low_g, max_value, on_low_g_thresh_trackbar);
-	createTrackbar("High G", window_color_threshold_name, &high_g, max_value, on_high_g_thresh_trackbar);
-	createTrackbar("Low R", window_color_threshold_name, &low_r, max_value, on_low_r_thresh_trackbar);
-	createTrackbar("High R", window_color_threshold_name, &high_r, max_value, on_high_r_thresh_trackbar);
-    createTrackbar("Canny threshold Scharr", window_edge_detection, &edgeThreshScharr, MAX_SCHARR_R_VALUE, on_edge_thresh_trackbar);
+	/// Create windows
+	namedWindow(window_erosions);
+	namedWindow(window_dilations);
 
-	// Show the frames
+	namedWindow(window_test);
+
+	// Trackbars to set thresholds for rgb values
+	createTrackbar("Low H", window_color_threshold_name, &low_H, max_value, on_low_H_thresh_trackbar);
+	createTrackbar("High H", window_color_threshold_name, &high_H, max_value, on_high_H_thresh_trackbar);
+	createTrackbar("Low S", window_color_threshold_name, &low_S, max_value, on_low_S_thresh_trackbar);
+	createTrackbar("High S", window_color_threshold_name, &high_S, max_value, on_high_S_thresh_trackbar);
+	createTrackbar("Low V", window_color_threshold_name, &low_V, max_value, on_low_V_thresh_trackbar);
+	createTrackbar("High V", window_color_threshold_name, &high_V, max_value, on_high_V_thresh_trackbar);
+    createTrackbar("Canny threshold1 Scharr", window_edge_detection, &edgeThresh1, MAX_EDGE_THRESHOLD, on_edge_thresh1_trackbar);
+
+	/// Create Erosion Trackbar
+	createTrackbar("Element:\n 0: Rect \n 1: Cross \n 2: Ellipse", window_erosions,
+		&erosion_elem, max_elem,
+		Erosion);
+	createTrackbar("Kernel size:\n 2n +1", window_erosions,
+		&erosion_size, max_kernel_size,
+		Erosion);
+
+	/// Create Dilation Trackbar
+	createTrackbar("Element:\n 0: Rect \n 1: Cross \n 2: Ellipse", window_dilations,
+		&dilation_elem, max_elem,
+		Dilation);
+	createTrackbar("Kernel size:\n 2n +1", window_dilations,
+		&dilation_size, max_kernel_size,
+		Dilation);
+
+	// Show the original, scaled frame
 	imshow(window_capture_name, scaledFrame);
-	
+
 	// Used for edge detection
 	Mat dx, dy;
 
 	while (true)
 	{
 		// Color thresholding
-		inRange(scaledFrame, Scalar(low_b, low_g, low_r), Scalar(high_b, high_g, high_r), greenFrame);
+		inRange(scaledFrame, Scalar(low_H, low_S, low_V), Scalar(high_H, high_S, high_V), colorMask);
+		greenFrame = Scalar::all(0);
+		// Copy original frame to greenFrame with the colorMask
+		scaledFrame.copyTo(greenFrame, colorMask);
 		//blur(greenFrame, greenFrame, Size(3, 3));
 		imshow(window_color_threshold_name, greenFrame);
 
+		// Erode/Dilate (use the green thresholded image)
+		erosion_src = colorMask;
+		Erosion(0, 0);
+		dilation_src = erosion_dst;
+		Dilation(0, 0);
+
 		//// Edge detection
-		// Blur with kernel size 3x3
-		blur(greenFrame, blurFrame, Size(3,3));
-		// Canny detector with Scharr
-    	Scharr(blurFrame,dx,CV_16S,1,0);
-    	Scharr(blurFrame,dy,CV_16S,0,1);
-   		Canny( dx,dy, cannyEdges, edgeThreshScharr, edgeThreshScharr*3 );
-    	/// Using Canny's output as a mask, we display our result
-    	edgeFrame = Scalar::all(0);
-		greenFrame.copyTo(edgeFrame, cannyEdges);
-    	imshow(window_edge_detection, edgeFrame);
+		// Blur input to edge detection
+		cv::GaussianBlur(dilation_dst, blurFrame, cv::Size(7, 7), 2, 2);
+		// Canny detector
+		Canny(blurFrame, cannyEdges, edgeThresh1, edgeThresh1*3, 3);
+		// We now have a binary mask of edges
+		imshow(window_edge_detection, cannyEdges);
+
+		// find contours
+		vector<vector<Point> > contours;
+		vector<Vec4i> hierarchy;
+		findContours(cannyEdges, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
+
+		// get the moments
+		vector<Moments> mu(contours.size());
+		for (int i = 0; i<contours.size(); i++)
+		{
+			mu[i] = moments(contours[i], false);
+		}
+
+		// get the centroid of figures.
+		vector<Point2f> mc(contours.size());
+		for (int i = 0; i<contours.size(); i++)
+		{
+			mc[i] = Point2f(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
+		}
+
+
+		// draw contours
+		Mat drawing(cannyEdges.size(), CV_8UC3, Scalar(255, 255, 255));
+		for (int i = 0; i<contours.size(); i++)
+		{
+			Scalar color = Scalar(167, 151, 0); // B G R values
+			circle(drawing, mc[i], 4, color, -1, 8, 0);
+		}
+
+		imshow(window_test, drawing);
 
 		char key = (char)waitKey(30);
 		if (key == 'q' || key == 27)
