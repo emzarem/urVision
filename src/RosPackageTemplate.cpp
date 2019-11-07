@@ -1,9 +1,9 @@
-#include "ros_package_template/RosPackageTemplate.hpp"
+#include "urVision/RosPackageTemplate.hpp"
 
 // STD
 #include <string>
 
-namespace ros_package_template {
+namespace urVision {
 
 RosPackageTemplate::RosPackageTemplate(ros::NodeHandle& nodeHandle)
     : nodeHandle_(nodeHandle)
