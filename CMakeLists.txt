@@ -12,6 +12,15 @@ find_package(catkin REQUIRED
   COMPONENTS
     roscpp
     sensor_msgs
+    cv_bridge
+    std_msgs
+    image_transport
+)
+
+find_package(OpenCV REQUIRED
+	NO_MODULE
+	PATHS /usr/local
+	NO_DEFAULT_PATH
 )
 
 ## Find system libraries
@@ -36,6 +45,9 @@ catkin_package(
   CATKIN_DEPENDS
     roscpp
     sensor_msgs
+    cv_bridge
+    std_msgs
+    image_transport
 #  DEPENDS
 #    Boost
 )
@@ -49,6 +61,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 #  ${EIGEN3_INCLUDE_DIR}
 #  ${Boost_INCLUDE_DIRS}
 )
@@ -76,11 +89,13 @@ add_dependencies(${PROJECT_NAME}
 ## Specify libraries to link executable targets against
 target_link_libraries(${PROJECT_NAME}_core
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(${PROJECT_NAME}
   ${PROJECT_NAME}_core
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 #############

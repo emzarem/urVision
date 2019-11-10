@@ -1,5 +1,8 @@
 #include <PlantDetect.h>
 
+using namespace cv;
+using namespace std;
+
 // Constants
 const float X_SCALE = 0.15;
 const float Y_SCALE = 0.15;

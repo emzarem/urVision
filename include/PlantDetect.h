@@ -1,16 +1,13 @@
 #ifndef PLANT_DETECT_H
 #define PLANT_DETECT_H
 
-#include "opencv2/core/utility.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/opencv.hpp"
-
-#include <stdio.h>
+#include <opencv2/core/utility.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/opencv.hpp>
 
 using namespace cv;
-using namespace std;
 
 Mat Erosion(Mat srcFrame);
 Mat Dilation(Mat srcFrame);
