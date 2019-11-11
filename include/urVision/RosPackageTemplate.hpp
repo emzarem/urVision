@@ -51,7 +51,7 @@ class RosPackageTemplate
   //! ROS node handle.
   ros::NodeHandle& nodeHandle_;
 
-  //! ROS topic subscriber.
+  //! ROS topic subscriber (stub).
   ros::Subscriber subscriber_;
 
   //! ROS topic name to subscribe to.

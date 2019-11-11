@@ -1,0 +1,7 @@
+<launch>
+	<!-- Launch the camera -->
+	<include file="$(find urVision)/launch/rpi_cam.launch"></include>
+
+	<include file="$(find urVision)/launch/urVision.launch"></include>
+
+</launch>

@@ -16,13 +16,13 @@ RosPackageTemplate::RosPackageTemplate(ros::NodeHandle& nodeHandle)
                                       &RosPackageTemplate::topicCallback, this);
   serviceServer_ = nodeHandle_.advertiseService("get_average",
                                                 &RosPackageTemplate::serviceCallback, this);
-  ROS_INFO("Successfully launched node.");
 }
 
 RosPackageTemplate::~RosPackageTemplate()
 {
 }
 
+// Add parameters here
 bool RosPackageTemplate::readParameters()
 {
   if (!nodeHandle_.getParam("subscriber_topic", subscriberTopic_)) return false;

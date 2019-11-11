@@ -11,54 +11,91 @@
 
 const std::string OPENCV_WINDOW = "urVision Window";
 
+// Image Converter class
 class ImageConverter
 {
-	ros::NodeHandle nh_;
-	image_transport::ImageTransport it_;
-  	image_transport::Subscriber image_sub_;
-  	image_transport::Publisher image_pub_;
+	ros::NodeHandle& m_nodeHandle;
+
+	image_transport::ImageTransport m_imageTransport;
+	image_transport::Subscriber m_imageSubscriber;
+	image_transport::Publisher m_imagePublisher;  
+	// For topic names
+	std::string m_cameraName;
+	std::string m_imageTopic;
+
+	std::string m_publisherName;
+
+	bool m_showWindow;
 
 public:
-	ImageConverter()
-	: it_(nh_)
+	ImageConverter(ros::NodeHandle& nodeHandle)
+	: m_nodeHandle(nodeHandle), m_imageTransport(nodeHandle)
 	{
-		// Subscrive to input video feed and publish output video feed
-		image_sub_ = it_.subscribe("/csi_cam_0/image_raw", 1,
-	  	&ImageConverter::imageCb, this);
-		image_pub_ = it_.advertise("/image_converter/output_video", 1);
+		if (!readParameters()) {
+			ROS_ERROR("Could not read parameters required for ImageConverter.");
+			ros::requestShutdown();
+		}
 
-		cv::namedWindow(OPENCV_WINDOW);
+		// Subscribe to input video feed and publish output video feed
+		m_imageSubscriber = m_imageTransport.subscribe(std::string(m_cameraName + m_imageTopic), 1, &ImageConverter::processImage, this);
+
+		m_imagePublisher = m_imageTransport.advertise(m_publisherName, 1);
+
+		if (m_showWindow)
+		{
+			cv::namedWindow(OPENCV_WINDOW);
+		}
+
+		  ROS_INFO("ImageConverter Pipeline started successfully.");
 	}
 
-  ~ImageConverter()
-  {
-    cv::destroyWindow(OPENCV_WINDOW);
- }
+	~ImageConverter()
+	{
+		if (m_showWindow)
+		{
+			cv::destroyWindow(OPENCV_WINDOW);
+		}
+	}
  
-  void imageCb(const sensor_msgs::ImageConstPtr& msg)
- {
-    cv_bridge::CvImagePtr cv_ptr;
-   try
-    {
-      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    }
-    catch (cv_bridge::Exception& e)
-    {
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
+	void processImage(const sensor_msgs::ImageConstPtr& msg)
+	{
+		cv_bridge::CvImagePtr cv_ptr;
+		try
+		{
+		  cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+		}
+		catch (cv_bridge::Exception& e)
+		{
+		  ROS_ERROR("cv_bridge exception: %s", e.what());
+		  return;
+		}
 
-    // Draw an example circle on the video stream
-    if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60)
-     cv::circle(cv_ptr->image, cv::Point(50, 50), 10, CV_RGB(255,0,0));
+		// Draw an example circle on the video stream
+		if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60)
+		 cv::circle(cv_ptr->image, cv::Point(50, 50), 10, CV_RGB(255,0,0));
 
-    // Update GUI Window
-    cv::imshow(OPENCV_WINDOW, cv_ptr->image);
-    cv::waitKey(3);
+		// Update GUI Window
+		if (m_showWindow)
+		{
+			cv::imshow(OPENCV_WINDOW, cv_ptr->image);
+		}
 
-    // Output modified video stream
-    image_pub_.publish(cv_ptr->toImageMsg());
-  }
+		cv::waitKey(3);
+
+		// Output modified video stream
+		m_imagePublisher.publish(cv_ptr->toImageMsg());
+	}
+
+	// Add parameters here
+	bool readParameters()
+	{
+		if (!m_nodeHandle.getParam("camera_name", m_cameraName)) return false;
+		if (!m_nodeHandle.getParam("image_topic", m_imageTopic)) return false;
+		if (!m_nodeHandle.getParam("publisher_name", m_publisherName)) return false;
+		if (!m_nodeHandle.getParam("show_img_window", m_showWindow)) return false;
+		return true;
+	}
+
 };
 
 int main(int argc, char** argv)
@@ -67,8 +104,8 @@ int main(int argc, char** argv)
   ros::NodeHandle nodeHandle("~");
 
   urVision::RosPackageTemplate rosPackageTemplate(nodeHandle);
-
-	ImageConverter imageConverter;
+  // Starts the image conversion pipeline
+  ImageConverter imageConverter(nodeHandle);
 
   ros::spin();
   return 0;

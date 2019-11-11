@@ -1,1 +1,10 @@
+# For rosPackageTemplate
 subscriber_topic: /temperature
+
+# For Image converter
+camera_name: /csi_cam_0
+image_topic: /image_raw
+
+publisher_name: /image_converter/output_video
+
+show_img_window: false

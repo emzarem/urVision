@@ -1,3 +1,16 @@
 # Vision of upRoot
 
-Currently all placeholders courtesy of ros-best-practices. These are just to hold the directory structure we want for the project.
+Main vision pipeline for upRoot Robotics Pipeline. Requires dependencies to be installed as listed in urMain.
+
+## After building
+Running
+```
+roslaunch urVision urVision.launch
+```
+or with launching camera stream node as well (to subscribe to)
+```
+roslaunch urVision urVision_with_cam.launch
+```
+
+
+
