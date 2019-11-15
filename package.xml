@@ -10,7 +10,10 @@
   <author email="pfankhauser@anybotics.com">Peter Fankhauser</author>
   
   <buildtool_depend>catkin</buildtool_depend>
-  
+
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+
   <!--<depend>eigen</depend>-->
   <!--<depend>boost</depend>-->
   <depend>roscpp</depend>
@@ -18,5 +21,4 @@
   <depend>cv_bridge</depend>
   <depend>std_msgs</depend>
   <depend>image_transport</depend>
-
 </package>

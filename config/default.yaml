@@ -5,6 +5,7 @@ subscriber_topic: /temperature
 camera_name: /csi_cam_0
 image_topic: /image_raw
 
-publisher_name: /image_converter/output_video
+image_publisher: /image_converter/output_video
+weed_data_publisher: /vision_target/weed_data
 
-show_img_window: false
+show_img_window: true

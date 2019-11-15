@@ -7,6 +7,8 @@ add_definitions(-std=c++11)
 ## enforcing cleaner code.
 #add_definitions(-std=c++11 -Wall -Werror)
 
+set(OpenCV_DIR /usr/share/OpenCV)
+
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED
   COMPONENTS
@@ -14,6 +16,7 @@ find_package(catkin REQUIRED
     sensor_msgs
     cv_bridge
     std_msgs
+    message_generation
     image_transport
 )
 
@@ -26,6 +29,17 @@ find_package(OpenCV REQUIRED
 ## Find system libraries
 #find_package(Eigen3 REQUIRED)
 #find_package(Boost REQUIRED)
+
+add_message_files(
+    FILES
+    weedData.msg
+    weedDataArray.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -47,6 +61,7 @@ catkin_package(
     sensor_msgs
     cv_bridge
     std_msgs
+    message_runtime
     image_transport
 #  DEPENDS
 #    Boost
