@@ -1,5 +1,7 @@
 #include "PlantDetect.h"
 
+using namespace std;
+
 static void help()
 {
 	printf("\nThis sample demonstrates rowDetect\n"
