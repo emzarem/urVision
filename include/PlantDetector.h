@@ -1,7 +1,8 @@
 #ifndef PLANT_DETECTOR_H
 #define PLANT_DETECTOR_H
 
-#include "../include/PlantTracker.h"
+#include "../include/PlantFilter.h"
+
 #include <opencv2/core/utility.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -12,13 +13,14 @@ using namespace cv;
 using namespace std;
 
 // Some constants
-const int MAX_EDGE_THRESHOLD = 100;
+const int MAX_EDGE_THRESHOLD = 200;
 const int max_value_H = 360 / 2;
 const int max_value = 255;
 
 const int erosion_type = MORPH_ELLIPSE;
 const int dilation_type = MORPH_ELLIPSE;
 
+const int max_kernel_size = 21;
 
 const String window_capture_name = "Current Frame";
 const String window_color_threshold_name = "Color Threshold";
@@ -27,21 +29,37 @@ const String window_test = "Window Test";
 const String window_erosions = "Erosions Test";
 const String window_dilations = "Dilations Test";
 
+// Trackbar callback prototypes
+static void on_edge_thresh1_trackbar(int, void *);
+static void on_low_H_thresh_trackbar(int, void *);
+static void on_high_H_thresh_trackbar(int, void *);
+static void on_low_S_thresh_trackbar(int, void *);
+static void on_high_S_thresh_trackbar(int, void *);
+static void on_low_V_thresh_trackbar(int, void *);
+static void on_high_V_thresh_trackbar(int, void *);
+
 class PlantDetector
 {
 public:
 	PlantDetector(int showWindows);
-	PlantDetector(int showWindows, PlantTracker* tracker);
 	~PlantDetector();
 
-	int init();
+	int init(float minWeedSize, float maxWeedSize);
 	int processFrame(Mat frame);
 
-	vector<KeyPoint> getLastObjectsFound();
+	vector<KeyPoint> getWeedList();
 
 	vector<KeyPoint> m_lastObjectsFound;
-	PlantTracker* m_plantTracker;
+	vector<KeyPoint> m_weedList;
+	vector<KeyPoint> m_cropList;
+
 	int m_showWindows;
+	int m_inited;
+
+	PlantFilter* m_plantFilter;
+
+	// Blob detector parameters (dynamic)
+	SimpleBlobDetector::Params m_blobParams;
 
 private:
 	vector<KeyPoint> DetectBlobs(Mat srcFrame);
@@ -59,8 +77,6 @@ private:
 	Mat hsvFrame;
 	Mat erosion_dst;
 	Mat dilation_dst;
-
-	const int max_kernel_size = 21;
 };
 
 #endif PLANT_DETECTOR_H

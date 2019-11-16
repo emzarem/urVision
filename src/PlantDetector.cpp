@@ -1,6 +1,5 @@
 #include "..\include\PlantDetector.h"
 
-
 // Canny edge detection 
 int edgeThresh1 = 100;
 
@@ -12,20 +11,7 @@ int dilation_size = 10;
 int low_H = 32, low_S = 95, low_V = 81;
 int high_H = 87, high_S = max_value, high_V = max_value;
 
-static void on_edge_thresh1_trackbar(int, void *);
-static void on_low_H_thresh_trackbar(int, void *);
-static void on_high_H_thresh_trackbar(int, void *);
-static void on_low_S_thresh_trackbar(int, void *);
-static void on_high_S_thresh_trackbar(int, void *);
-static void on_low_V_thresh_trackbar(int, void *);
-static void on_high_V_thresh_trackbar(int, void *);
-
-
-PlantDetector::PlantDetector(int showWindows) : m_showWindows(showWindows), m_plantTracker(NULL)
-{
-}
-
-PlantDetector::PlantDetector(int showWindows, PlantTracker* tracker) : m_showWindows(showWindows), m_plantTracker(tracker)
+PlantDetector::PlantDetector(int showWindows) : m_showWindows(showWindows), m_inited(false)
 {
 }
 
@@ -33,8 +19,38 @@ PlantDetector::~PlantDetector()
 {
 }
 
-int PlantDetector::init()
+int PlantDetector::init(float minWeedSize, float maxWeedSize)
 {
+	/* Initialize blob parameters */
+	// Change thresholds
+	m_blobParams.minThreshold = 10;
+	m_blobParams.maxThreshold = 255;
+	// Not filtering by color
+	m_blobParams.filterByColor = false;
+
+	// Filter by Area.
+	m_blobParams.filterByArea = false;
+	m_blobParams.minArea = 1000;
+
+	// Filter by circularity ?
+	m_blobParams.filterByCircularity = false;
+
+	// Filter by Convexity
+	m_blobParams.filterByConvexity = false;
+	m_blobParams.minConvexity = 0.87;
+
+	// Filter by Inertia
+	m_blobParams.filterByInertia = true;
+	m_blobParams.minInertiaRatio = 0.01;
+	
+	// Initialize plant filter
+	m_plantFilter = new PlantFilter(minWeedSize, maxWeedSize);
+
+	if (NULL == m_plantFilter)
+	{
+		return false;
+	}
+
 	if (m_showWindows)
 	{
 		// Create the windows
@@ -65,12 +81,20 @@ int PlantDetector::init()
 		printf("PlantDetector -- specified not to show windows, not initializing windows\n");
 	}
 
+
+	m_inited = true;
+
 	return true;
 }
 
 /* Main Processing Pipeline */
 int PlantDetector::processFrame(Mat frame)
 {
+	if (!m_inited)
+	{
+		printf("Error -- PlantDetector class not initialized\n");
+		return false;
+	}
 	// Convert from BGR to HSV colorspace
 	cvtColor(frame, hsvFrame, COLOR_BGR2HSV);
 
@@ -93,12 +117,9 @@ int PlantDetector::processFrame(Mat frame)
 	// Save latest objects detected
 	m_lastObjectsFound = detectedBlobs;
 
-
-	// If we are attached to a plantTracker
-	if (NULL != m_plantTracker)
-	{
-		m_plantTracker->addToTracker(detectedBlobs);
-	}
+	// Filter weeds from this object list
+	m_weedList.clear();
+	m_weedList = m_plantFilter->filterWeeds(m_lastObjectsFound);
 
 	// If we are showing windows ...
 	if (m_showWindows)
@@ -113,7 +134,7 @@ int PlantDetector::processFrame(Mat frame)
 		// DrawMatchesFlags::DRAW_RICH_KEYPOINTS flag ensures
 		// the size of the circle corresponds to the size of blob
 		Mat im_with_keypoints;
-		drawKeypoints(cannyEdges, detectedBlobs, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		drawKeypoints(cannyEdges, m_weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		// Show blobs
 		imshow(window_test, im_with_keypoints);
 	}
@@ -121,9 +142,9 @@ int PlantDetector::processFrame(Mat frame)
 	return true;
 }
 
-vector<KeyPoint> PlantDetector::getLastObjectsFound()
+vector<KeyPoint> PlantDetector::getWeedList()
 {
-	return m_lastObjectsFound;
+	return m_weedList;
 }
 
 /* HSV thresholding
@@ -175,35 +196,11 @@ Mat PlantDetector::Dilation(Mat srcFrame)
 
 vector<KeyPoint> PlantDetector::DetectBlobs(Mat srcFrame)
 {
-	// Setup SimpleBlobDetector parameters.
-	SimpleBlobDetector::Params params;
-
-	// Change thresholds
-	params.minThreshold = 10;
-	params.maxThreshold = 255;
-
-	params.filterByColor = false;
-
-	// Filter by Area.
-	params.filterByArea = false;
-	params.minArea = 1000;
-
-	// Filter by Circularity
-	params.filterByCircularity = false;
-
-	// Filter by Convexity
-	params.filterByConvexity = false;
-	params.minConvexity = 0.87;
-
-	// Filter by Inertia
-	params.filterByInertia = true;
-	params.minInertiaRatio = 0.01;
-
 	// Storage for blobs
 	vector<KeyPoint> keypoints;
 
-	// Set up detector with params
-	Ptr<SimpleBlobDetector> detector = SimpleBlobDetector::create(params);
+	// Set up BlobDetector with params
+	Ptr<SimpleBlobDetector> detector = SimpleBlobDetector::create(m_blobParams);
 
 	// Detect blobs
 	detector->detect(cannyEdges, keypoints);

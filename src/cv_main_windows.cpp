@@ -3,6 +3,11 @@
 using namespace std;
 using namespace cv;
 
+// Parameters (to get from ROS)
+// Weed filtering
+const float DEFAULT_MAX_WEED_SIZE = 200;
+const float DEFAULT_MIN_WEED_SIZE = 2;
+
 // Constants
 const float X_SCALE = 0.15;
 const float Y_SCALE = 0.15;
@@ -40,13 +45,11 @@ int main(int argc, const char** argv)
 		return -1;
 	}
 	
-	// Create tracker with logging
-	PlantTracker* tracker = new PlantTracker(true);
 	// Create detector attached to tracker
-	PlantDetector detector(SHOW_WINDOWS, tracker);
+	PlantDetector detector(SHOW_WINDOWS);
 
 	// Init windows for testing
-	if (!detector.init())
+	if (!detector.init(DEFAULT_MIN_WEED_SIZE, DEFAULT_MAX_WEED_SIZE))
 	{
 		printf("Error initializing Plant Detector\n");
 		return -1;
@@ -67,12 +70,10 @@ int main(int argc, const char** argv)
 			return -1;
 		}
 
-		vector<KeyPoint> newPlants = tracker->getNewPlants();
-
-		for (vector<KeyPoint>::iterator it = newPlants.begin(); it != newPlants.end(); it++)
+		vector<KeyPoint> weedList = detector.getWeedList();
+		for (vector<KeyPoint>::iterator it = weedList.begin(); it != weedList.end(); ++it)
 		{
-			printf("Found NEW plant at (x,y): ( %f , %f )\n", it->pt.x, it->pt.y);
-			// On ROS, we can send each of these to RosCore.
+			printf("Found weed at (x,y,size) : (%f, %f, %f)\n", it->pt.x, it->pt.y, it->size);
 		}
 
 		char key = (char)waitKey(30);
