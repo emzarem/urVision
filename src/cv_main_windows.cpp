@@ -5,12 +5,12 @@ using namespace cv;
 
 // Parameters (to get from ROS)
 // Weed filtering
-const float DEFAULT_MAX_WEED_SIZE = 200;
-const float DEFAULT_MIN_WEED_SIZE = 2;
+const float DEFAULT_MAX_WEED_SIZE = 1000;
+const float DEFAULT_MIN_WEED_SIZE = 0;
 
 // Constants
-const float X_SCALE = 0.15;
-const float Y_SCALE = 0.15;
+const float X_SCALE = (float)0.15;
+const float Y_SCALE = (float)0.15;
 
 // forward velocity in m/s
 const float FORWARD_VELOCITY = 0.5;
@@ -45,8 +45,13 @@ int main(int argc, const char** argv)
 		return -1;
 	}
 	
+	// Resize image
+	resize(origFrame, currentFrame, Size(0, 0), X_SCALE, Y_SCALE, INTER_LINEAR);
+	
+	Size frameSize = currentFrame.size();
+
 	// Create detector attached to tracker
-	PlantDetector detector(SHOW_WINDOWS);
+	PlantDetector detector(SHOW_WINDOWS, frameSize);
 
 	// Init windows for testing
 	if (!detector.init(DEFAULT_MIN_WEED_SIZE, DEFAULT_MAX_WEED_SIZE))
@@ -57,6 +62,7 @@ int main(int argc, const char** argv)
 	
 	for (int frameNum = 0; true ;frameNum++)
 	{
+		// Operate on origFrame for now
 		currentFrame = origFrame;
 
 		// Resize image

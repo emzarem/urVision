@@ -11,7 +11,8 @@ int dilation_size = 10;
 int low_H = 32, low_S = 95, low_V = 81;
 int high_H = 87, high_S = max_value, high_V = max_value;
 
-PlantDetector::PlantDetector(int showWindows) : m_showWindows(showWindows), m_inited(false)
+PlantDetector::PlantDetector(int showWindows, Size frameSize) : 
+	m_showWindows(showWindows), m_inited(false), m_frameSize(frameSize)
 {
 }
 
@@ -42,9 +43,9 @@ int PlantDetector::init(float minWeedSize, float maxWeedSize)
 	// Filter by Inertia
 	m_blobParams.filterByInertia = true;
 	m_blobParams.minInertiaRatio = 0.01;
-	
+
 	// Initialize plant filter
-	m_plantFilter = new PlantFilter(minWeedSize, maxWeedSize);
+	m_plantFilter = new PlantFilter(m_frameSize, minWeedSize, maxWeedSize);
 
 	if (NULL == m_plantFilter)
 	{

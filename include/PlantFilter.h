@@ -11,11 +11,12 @@ using namespace std;
 using namespace cv;
 
 const int DEFAULT_ACCUMULATOR_LENGTH = 10;
+const int DEFAULT_HISTOGRAM_SIZE = 30;
 
 class PlantFilter
 {
 public:
-	PlantFilter(float minWeedSize, float maxWeedSize);
+	PlantFilter(Size frameSize, float minWeedSize, float maxWeedSize);
 
 	~PlantFilter();
 
@@ -29,7 +30,14 @@ public:
 	
 	vector<float> m_weedSizeAccumulator;
 	vector<float> m_cropSizeAccumulator;
-	vector<float> m_allSizeAccumulator;
+
+	float m_cropSizeMean;
+	float m_cropSizeStdDev;
+
+	Size m_frameSize;
+
+	vector<uint8_t> m_otsuAccumulator;
+	float m_otsuThreshold;
 
 private:
 	template<typename T>

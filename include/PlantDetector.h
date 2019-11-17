@@ -41,7 +41,7 @@ static void on_high_V_thresh_trackbar(int, void *);
 class PlantDetector
 {
 public:
-	PlantDetector(int showWindows);
+	PlantDetector(int showWindows, Size frameSize);
 	~PlantDetector();
 
 	int init(float minWeedSize, float maxWeedSize);
@@ -60,6 +60,7 @@ public:
 
 	// Blob detector parameters (dynamic)
 	SimpleBlobDetector::Params m_blobParams;
+	Size m_frameSize;
 
 private:
 	vector<KeyPoint> DetectBlobs(Mat srcFrame);
