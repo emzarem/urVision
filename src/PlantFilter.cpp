@@ -1,4 +1,4 @@
-#include "..\include\PlantFilter.h"
+#include "../include/PlantFilter.h"
 #include <numeric>
 
 #define USE_OTSU_FILTERING 1

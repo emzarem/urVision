@@ -80,4 +80,4 @@ private:
 	Mat dilation_dst;
 };
 
-#endif PLANT_DETECTOR_H
+#endif

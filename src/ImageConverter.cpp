@@ -8,6 +8,9 @@
 #include <urVision/weedDataArray.h>
 #include <urVision/weedData.h>
 
+const float DEFAULT_MAX_WEED_SIZE = 1000;
+const float DEFAULT_MIN_WEED_SIZE = 0;
+
 const std::string OPENCV_WINDOW = "urVision Window";
 
 // Image Converter class
@@ -31,9 +34,16 @@ class ImageConverter
 
 	bool m_showWindow;
 
+	bool m_haveFrame;
+	Size m_rawImageSize;
+
+	uint64_t m_frameNum;
+
+	PlantDetector* m_detector;
+
 public:
 	ImageConverter(ros::NodeHandle& nodeHandle)
-	: m_nodeHandle(nodeHandle), m_imageTransport(nodeHandle)
+	: m_nodeHandle(nodeHandle), m_imageTransport(nodeHandle), m_haveFrame(false), m_frameNum(0)
 	{
 		if (!readParameters()) {
 			ROS_ERROR("Could not read parameters required for ImageConverter.");
@@ -61,6 +71,9 @@ public:
  
 	void processImage(const sensor_msgs::ImageConstPtr& msg)
 	{
+		// Update framenumber
+		m_frameNum++;
+		// Get image from cv_bridge
 		cv_bridge::CvImagePtr cv_ptr;
 		try
 		{
@@ -72,30 +85,58 @@ public:
 			return;
 		}
 
-		// Draw an example circle on the video stream
-		if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60)
-			cv::circle(cv_ptr->image, cv::Point(50, 50), 10, CV_RGB(255,0,0));
+		// Get current frame
+		Mat currentFrame = cv_ptr->image;
 
-		cv::waitKey(3);
+		// If this is the first frame
+		if (!m_haveFrame)
+		{	
+			// Are we resizing (???) (if so put it here)
+			m_rawImageSize = currentFrame.size();
+			m_detector = new PlantDetector(m_showWindow, m_rawImageSize);
+			m_haveFrame = true;
+			if (!m_detector->init(DEFAULT_MIN_WEED_SIZE, DEFAULT_MAX_WEED_SIZE))
+			{
+				ROS_ERROR("Could not initialize PlantDetector instance!");
+				ros::requestShutdown();
+			}
+		}
 
-		// Output modified video stream
+		// Do processing on this frame
+		if (!m_detector->processFrame(currentFrame))
+		{
+			ROS_ERROR("Error processing frame: %i\n", (int)m_frameNum);
+			ros::requestShutdown();
+		}
+
+		ROS_INFO("Processed Frame: %i", (int)m_frameNum);
+
+		// Get the weed list for this frame!
+		vector<KeyPoint> weedList = m_detector->getWeedList();
+		for (vector<KeyPoint>::iterator it = weedList.begin(); it != weedList.end(); ++it)
+		{
+			/* Populating weedData list to be published */
+			// urVision::weedData weed_data;
+			// urVision::weedDataArray weed_msg;
+
+			// Set the data
+			// Something like:
+			// weed_data.x_cm = ; weed_data.y_cm = , 
+			// weed_msg.weeds.push_back(weed_data)
+
+			// data.upperleft=0; data.lowerRight=100; data.color="red"; data.cameraID="one";
+			// msg.images.push_back(data);
+			// data.upperleft=1; data.lowerRight=101; data.color="blue"; data.cameraID="two";
+			// msg.images.push_back(data);
+
+			// m_weedDataPublisher.publish(weed_msg);
+		}
+
+		// Publish weed keypoints drawn on original image
+		Mat im_with_keypoints;
+		drawKeypoints(currentFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		cv_ptr->image = im_with_keypoints;
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
-
-		// Send the most recent weed data
-		urVision::weedData weed_data;
-		urVision::weedDataArray weed_msg;
-
-		// Set the data
-		// Something like:
-		// weed_data.x_cm = ; weed_data.y_cm = , 
-		// weed_msg.weeds.push_back(weed_data)
-
-		// data.upperleft=0; data.lowerRight=100; data.color="red"; data.cameraID="one";
-		// msg.images.push_back(data);
-		// data.upperleft=1; data.lowerRight=101; data.color="blue"; data.cameraID="two";
-		// msg.images.push_back(data);
-
-		m_weedDataPublisher.publish(weed_msg);
 	}
 
 	// Image converter specific parameters

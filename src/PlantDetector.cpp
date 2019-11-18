@@ -1,4 +1,4 @@
-#include "..\include\PlantDetector.h"
+#include "../include/PlantDetector.h"
 
 // Canny edge detection 
 int edgeThresh1 = 100;
@@ -138,6 +138,8 @@ int PlantDetector::processFrame(Mat frame)
 		drawKeypoints(cannyEdges, m_weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		// Show blobs
 		imshow(window_test, im_with_keypoints);
+
+		cv::waitKey(3);
 	}
 
 	return true;

@@ -2,10 +2,12 @@
 subscriber_topic: /temperature
 
 # For Image converter
-camera_name: /csi_cam_0
+camera_name: /test_image
 image_topic: /image_raw
 
 image_publisher: /image_converter/output_video
 weed_data_publisher: /vision_target/weed_data
 
 show_img_window: false
+
+test_image: /home/aruby/catkin_ws/src/urVision/test_images/lettuce.JPG

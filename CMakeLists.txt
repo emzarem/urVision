@@ -90,6 +90,13 @@ add_library(${PROJECT_NAME}_core
 add_executable(${PROJECT_NAME}
   src/${PROJECT_NAME}_node.cpp
   src/RosPackageTemplate.cpp
+  src/PlantDetector.cpp
+  src/PlantFilter.cpp
+)
+
+## Declare cpp executables
+add_executable(test_image_publisher
+  src/test_image_publisher_node.cpp
 )
 
 ## Add dependencies to exported targets, like ROS msgs or srvs
@@ -98,6 +105,10 @@ add_dependencies(${PROJECT_NAME}_core
 )
 
 add_dependencies(${PROJECT_NAME}
+  ${catkin_EXPORTED_TARGETS}
+)
+
+add_dependencies(test_image_publisher
   ${catkin_EXPORTED_TARGETS}
 )
 
@@ -113,13 +124,18 @@ target_link_libraries(${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
 )
 
+target_link_libraries(test_image_publisher
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
 
 # Mark executables and/or libraries for installation
 install(
-  TARGETS ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME} test_image_publisher
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

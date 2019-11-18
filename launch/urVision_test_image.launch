@@ -1,0 +1,13 @@
+<launch>
+
+	<!-- Launch the test_image_publisher node (set filename in config file) -->
+	<node pkg="urVision" type="test_image_publisher" name="test_image_publisher" output="screen">
+		<rosparam command="load" file="$(find urVision)/config/urvision_test_image.yaml" />
+	</node>
+
+	<!-- Launch the urVision node -->
+	<node pkg="urVision" type="urVision" name="urVision" output="screen">
+		<rosparam command="load" file="$(find urVision)/config/urvision_test_image.yaml" />
+	</node>
+
+</launch>

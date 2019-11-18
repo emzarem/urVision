@@ -1,6 +1,6 @@
 // Project internal includes
 #include "urVision/RosPackageTemplate.hpp"
-#include "PlantDetect.h"
+#include "PlantDetector.h"
 #include "ImageConverter.cpp"
 
 #include <ros/ros.h>

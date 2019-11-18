@@ -13,7 +13,6 @@ const float X_SCALE = (float)0.15;
 const float Y_SCALE = (float)0.15;
 
 // forward velocity in m/s
-const float FORWARD_VELOCITY = 0.5;
 const int SHOW_WINDOWS = true;
 
 static void help()
@@ -69,7 +68,6 @@ int main(int argc, const char** argv)
 		resize(currentFrame, currentFrame, Size(0, 0), X_SCALE, Y_SCALE, INTER_LINEAR);
 
 		// Do processing on this frame
-		// This call to processFrame should also add to our Tracker
 		if (!detector.processFrame(currentFrame))
 		{
 			printf("Error processing frame: %d\n", frameNum);
