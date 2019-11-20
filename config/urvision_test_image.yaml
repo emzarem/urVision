@@ -21,10 +21,10 @@ fov_height_cm: 30
 min_weed_size_cm: 1
 max_weed_size_cm: 1000
 
-default_weed_size_threshold_cm: 1
+default_weed_size_threshold_cm: 2
 
 min_accumulator_size: 10
-max_accumulator_size: 50
+max_accumulator_size: 100
 
-x_scale_image: 0.20
-y_scale_image: 0.20
+x_scale_image: 0.15
+y_scale_image: 0.15

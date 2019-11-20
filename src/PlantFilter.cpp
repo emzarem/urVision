@@ -37,7 +37,6 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 			// We can use our otsu size threshold (classifying objects)
 			if (m_otsuThreshold > 0)
 			{
-				printf("otsu threshold is: %f\n", m_otsuThreshold);
 				// If we can safely say this is a crop (based on otsu threshold)
 				if ((float)normalizedSize > m_otsuThreshold)
 				{

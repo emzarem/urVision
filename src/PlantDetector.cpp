@@ -119,7 +119,7 @@ int PlantDetector::processFrame(Mat frame)
 
 	// Filter weeds from this object list
 	m_weedList.clear();
-//	m_weedList = m_plantFilter->filterWeeds(m_lastObjectsFound);
+	m_weedList = m_plantFilter->filterWeeds(m_lastObjectsFound);
 
 	// If we are showing windows ...
 	if (m_showWindows)
@@ -133,9 +133,13 @@ int PlantDetector::processFrame(Mat frame)
 		// the size of the circle corresponds to the size of blob
 		Mat im_with_keypoints;
 		drawKeypoints(morphFrame, m_lastObjectsFound, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-		drawKeypoints(morphFrame, detectedBlobs, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		// Show blobs
 		imshow(window_blob_detection, im_with_keypoints);
+
+		// Now draw only with filtered weeds
+		drawKeypoints(morphFrame, m_weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		// Show blobs
+		imshow(window_test, im_with_keypoints);
 
 		cv::waitKey(3);
 	}
