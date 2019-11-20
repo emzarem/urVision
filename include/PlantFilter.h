@@ -10,20 +10,43 @@
 using namespace std;
 using namespace cv;
 
-const int DEFAULT_ACCUMULATOR_LENGTH = 10;
-const int DEFAULT_HISTOGRAM_SIZE = 30;
+class VisionParams
+{
+public:
+	VisionParams() {
+		frameSize = Size(0,0);
+		defaultWeedThreshold = -1;
+		minWeedSize = 0; 
+		maxWeedSize = 0;
+		minAccumulatorSize = 0;
+		maxAccumulatorSize = 0;
+	}
+	~VisionParams(){
+
+	}
+
+	cv::Size frameSize;
+	float defaultWeedThreshold;
+	float minWeedSize;
+	float maxWeedSize;
+
+	int minAccumulatorSize;
+	int maxAccumulatorSize;
+
+	int otsuHistogramsize;
+};
 
 class PlantFilter
 {
 public:
-	PlantFilter(Size frameSize, float minWeedSize, float maxWeedSize);
+	PlantFilter(VisionParams visionParams);
 
 	~PlantFilter();
 
 	vector<KeyPoint> filterWeeds(vector<KeyPoint> currentPlants);
 
-	float m_maxWeedSize;
-	float m_minWeedSize;
+	VisionParams m_visionParams;
+	float m_otsuThreshold;
 
 	vector<float> m_weedXAccumulator;
 	vector<float> m_cropXAccumulator;
@@ -34,10 +57,7 @@ public:
 	float m_cropSizeMean;
 	float m_cropSizeStdDev;
 
-	Size m_frameSize;
-
 	vector<uint8_t> m_otsuAccumulator;
-	float m_otsuThreshold;
 
 private:
 	template<typename T>

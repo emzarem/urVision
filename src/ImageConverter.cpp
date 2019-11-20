@@ -8,9 +8,6 @@
 #include <urVision/weedDataArray.h>
 #include <urVision/weedData.h>
 
-const float DEFAULT_MAX_WEED_SIZE = 1000;
-const float DEFAULT_MIN_WEED_SIZE = 0;
-
 const std::string OPENCV_WINDOW = "urVision Window";
 
 // Image Converter class
@@ -33,22 +30,34 @@ class ImageConverter
 	std::string m_weedDataPublisherName;
 
 	bool m_showWindow;
-
 	bool m_haveFrame;
-	Size m_rawImageSize;
-
 	uint64_t m_frameNum;
 
 	PlantDetector* m_detector;
+
+	VisionParams m_visionParams;
+
+	int fovWidthCm, fovHeightCm, maxWeedSizeCm, minWeedSizeCm, defaultWeedSizeCm;
+
+	float scaleFactorX, scaleFactorY, sizeScale;
 
 public:
 	ImageConverter(ros::NodeHandle& nodeHandle)
 	: m_nodeHandle(nodeHandle), m_imageTransport(nodeHandle), m_haveFrame(false), m_frameNum(0)
 	{
-		if (!readParameters()) {
-			ROS_ERROR("Could not read parameters required for ImageConverter.");
+		if (!readGeneralParameters()) {
+			ROS_ERROR("Could not read general parameters required for ImageConverter.");
 			ros::requestShutdown();
 		}
+
+		if (!readVisionParameters())
+		{
+			ROS_ERROR("Could not read vision parameters required for ImageConverter.");
+			ros::requestShutdown();
+		}
+
+		// Create plant detector
+		m_detector = new PlantDetector(m_showWindow);
 	}
 
 	~ImageConverter()
@@ -57,6 +66,7 @@ public:
 
 	int initialize()
 	{
+
 		// Subscribe to input video feed and publish output video feed
 		m_imageSubscriber = m_imageTransport.subscribe(std::string(m_cameraName + m_imageTopic), 1, &ImageConverter::processImage, this);
 
@@ -90,12 +100,25 @@ public:
 
 		// If this is the first frame
 		if (!m_haveFrame)
-		{	
-			// Are we resizing (???) (if so put it here)
-			m_rawImageSize = currentFrame.size();
-			m_detector = new PlantDetector(m_showWindow, m_rawImageSize);
+		{
+			m_visionParams.frameSize = currentFrame.size();
+
+			// These are our scaling operations
+			scaleFactorX = ((float)fovWidthCm) / m_visionParams.frameSize.width;
+			scaleFactorY = ((float)fovHeightCm) / m_visionParams.frameSize.height;
+			sizeScale = (scaleFactorX + scaleFactorY) / 2;
+			
+			ROS_INFO("FrameSize is (width, height): (%i, %i)", 
+				m_visionParams.frameSize.width, m_visionParams.frameSize.height);
+			ROS_INFO("ScaleFactors -- (xScale, yScale, sizeScale): ( %f, %f, %f)", scaleFactorX, scaleFactorY, sizeScale);
+
+			m_visionParams.defaultWeedThreshold = ((float)defaultWeedSizeCm ) / sizeScale;
+			m_visionParams.minWeedSize = ((float)minWeedSizeCm ) / sizeScale;
+			m_visionParams.maxWeedSize = ((float)maxWeedSizeCm ) / sizeScale;
+
+			// Now we have a frame (only had to to this initialization once)
 			m_haveFrame = true;
-			if (!m_detector->init(DEFAULT_MIN_WEED_SIZE, DEFAULT_MAX_WEED_SIZE))
+			if (!m_detector->init(m_visionParams))
 			{
 				ROS_ERROR("Could not initialize PlantDetector instance!");
 				ros::requestShutdown();
@@ -111,7 +134,7 @@ public:
 
 		ROS_INFO("Processed Frame: %i", (int)m_frameNum);
 
-		// Get the weed list for this frame!
+		// Get the weed list for this frame!	
 		vector<KeyPoint> weedList = m_detector->getWeedList();
 		for (vector<KeyPoint>::iterator it = weedList.begin(); it != weedList.end(); ++it)
 		{
@@ -139,14 +162,31 @@ public:
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
 	}
 
-	// Image converter specific parameters
-	bool readParameters()
+	// General parameters for this node
+	bool readGeneralParameters()
 	{
 		if (!m_nodeHandle.getParam("camera_name", m_cameraName)) return false;
 		if (!m_nodeHandle.getParam("image_topic", m_imageTopic)) return false;
 		if (!m_nodeHandle.getParam("image_publisher", m_imagePublisherName)) return false;
 		if (!m_nodeHandle.getParam("weed_data_publisher", m_weedDataPublisherName)) return false;
 		if (!m_nodeHandle.getParam("show_img_window", m_showWindow)) return false;
+
+		return true;
+	}
+
+		// Image converter specific parameters
+	bool readVisionParameters()
+	{
+		// Read vision parameters
+		if (!m_nodeHandle.getParam("fov_width_cm", fovWidthCm)) return false;
+		if (!m_nodeHandle.getParam("fov_height_cm", fovHeightCm)) return false;
+		if (!m_nodeHandle.getParam("min_weed_size_cm", minWeedSizeCm)) return false;
+		if (!m_nodeHandle.getParam("max_weed_size_cm", maxWeedSizeCm)) return false;
+		if (!m_nodeHandle.getParam("default_weed_size_threshold_cm", defaultWeedSizeCm)) return false;
+
+		if (!m_nodeHandle.getParam("min_accumulator_size", m_visionParams.minAccumulatorSize)) return false;
+		if (!m_nodeHandle.getParam("max_accumulator_size", m_visionParams.maxAccumulatorSize)) return false;
+
 		return true;
 	}
 

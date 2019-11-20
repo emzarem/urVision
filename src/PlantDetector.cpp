@@ -3,16 +3,16 @@
 // Canny edge detection 
 int edgeThresh1 = 100;
 
-// Erosions and dilations =
-int erosion_size = 2;
+// Erosions and dilations
+int erosion_size = 3;
 int dilation_size = 10;
 
 // HSV thresholding
 int low_H = 32, low_S = 95, low_V = 81;
 int high_H = 87, high_S = max_value, high_V = max_value;
 
-PlantDetector::PlantDetector(int showWindows, Size frameSize) : 
-	m_showWindows(showWindows), m_inited(false), m_frameSize(frameSize)
+PlantDetector::PlantDetector(int showWindows) : 
+	m_showWindows(showWindows), m_inited(false), m_plantFilter(NULL)
 {
 }
 
@@ -20,37 +20,40 @@ PlantDetector::~PlantDetector()
 {
 }
 
-int PlantDetector::init(float minWeedSize, float maxWeedSize)
+int PlantDetector::init(VisionParams visionParams)
 {
+	// If proper frame size not provided
+	if (visionParams.frameSize == Size(0,0)) {
+		return false;
+	}
+	// Initialize plant filter
+	m_plantFilter = new PlantFilter(visionParams);
+
+	if (NULL == m_plantFilter) {
+		return false;
+	}
+
 	/* Initialize blob parameters */
 	// Change thresholds
 	m_blobParams.minThreshold = 10;
-	m_blobParams.maxThreshold = 255;
+	m_blobParams.maxThreshold = 240;
 	// Not filtering by color
 	m_blobParams.filterByColor = false;
 
-	// Filter by Area.
+	// Filter by Area (TODO: EXPERIMENT WITH THIS)
 	m_blobParams.filterByArea = false;
-	m_blobParams.minArea = 1000;
+	m_blobParams.minArea = visionParams.minWeedSize;
 
 	// Filter by circularity ?
 	m_blobParams.filterByCircularity = false;
 
 	// Filter by Convexity
 	m_blobParams.filterByConvexity = false;
-	m_blobParams.minConvexity = 0.87;
+	// m_blobParams.minConvexity = 0.87;
 
-	// Filter by Inertia
+	// Filter by Inertia (TODO: ADJUST THIS)
 	m_blobParams.filterByInertia = true;
 	m_blobParams.minInertiaRatio = 0.01;
-
-	// Initialize plant filter
-	m_plantFilter = new PlantFilter(m_frameSize, minWeedSize, maxWeedSize);
-
-	if (NULL == m_plantFilter)
-	{
-		return false;
-	}
 
 	if (m_showWindows)
 	{
@@ -60,7 +63,7 @@ int PlantDetector::init(float minWeedSize, float maxWeedSize)
 		namedWindow(window_edge_detection);
 		namedWindow(window_erosions);
 		namedWindow(window_dilations);
-		namedWindow(window_test);
+		namedWindow(window_blob_detection);
 
 		// Trackbars to set thresholds for rgb values
 		createTrackbar("Low H", window_color_threshold_name, &low_H, max_value, on_low_H_thresh_trackbar);
@@ -77,11 +80,6 @@ int PlantDetector::init(float minWeedSize, float maxWeedSize)
 			&dilation_size, max_kernel_size,
 			0);
 	}
-	else
-	{
-		printf("PlantDetector -- specified not to show windows, not initializing windows\n");
-	}
-
 
 	m_inited = true;
 
@@ -91,11 +89,10 @@ int PlantDetector::init(float minWeedSize, float maxWeedSize)
 /* Main Processing Pipeline */
 int PlantDetector::processFrame(Mat frame)
 {
-	if (!m_inited)
-	{
-		printf("Error -- PlantDetector class not initialized\n");
+	if (!m_inited) {
 		return false;
 	}
+
 	// Convert from BGR to HSV colorspace
 	cvtColor(frame, hsvFrame, COLOR_BGR2HSV);
 
@@ -135,9 +132,9 @@ int PlantDetector::processFrame(Mat frame)
 		// DrawMatchesFlags::DRAW_RICH_KEYPOINTS flag ensures
 		// the size of the circle corresponds to the size of blob
 		Mat im_with_keypoints;
-		drawKeypoints(cannyEdges, m_weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		drawKeypoints(cannyEdges, m_lastObjectsFound, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		// Show blobs
-		imshow(window_test, im_with_keypoints);
+		imshow(window_blob_detection, im_with_keypoints);
 
 		cv::waitKey(3);
 	}

@@ -9,3 +9,13 @@ image_publisher: /image_converter/output_video
 weed_data_publisher: /vision_target/weed_data
 
 show_img_window: false
+
+# Camera/vision parameters
+fov_width_cm: 40
+fov_height_cm: 20
+
+min_weed_size_cm: 0
+max_weed_size_cm: 1000
+
+default_weed_size_threshold_cm: 26
+

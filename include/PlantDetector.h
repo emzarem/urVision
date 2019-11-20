@@ -25,7 +25,7 @@ const int max_kernel_size = 21;
 const String window_capture_name = "Current Frame";
 const String window_color_threshold_name = "Color Threshold";
 const String window_edge_detection = "Edge Detection";
-const String window_test = "Window Test";
+const String window_blob_detection = "Blob Detection";
 const String window_erosions = "Erosions Test";
 const String window_dilations = "Dilations Test";
 
@@ -41,10 +41,10 @@ static void on_high_V_thresh_trackbar(int, void *);
 class PlantDetector
 {
 public:
-	PlantDetector(int showWindows, Size frameSize);
+	PlantDetector(int showWindows);
 	~PlantDetector();
 
-	int init(float minWeedSize, float maxWeedSize);
+	int init(VisionParams visionParams);
 	int processFrame(Mat frame);
 
 	vector<KeyPoint> getWeedList();
@@ -60,7 +60,6 @@ public:
 
 	// Blob detector parameters (dynamic)
 	SimpleBlobDetector::Params m_blobParams;
-	Size m_frameSize;
 
 private:
 	vector<KeyPoint> DetectBlobs(Mat srcFrame);
