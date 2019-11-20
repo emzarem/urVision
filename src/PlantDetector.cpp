@@ -1,15 +1,11 @@
 #include "../include/PlantDetector.h"
 
-// Canny edge detection 
-int edgeThresh1 = 100;
-
-// Erosions and dilations
-int erosion_size = 3;
-int dilation_size = 10;
+// For erosions and dilations
+int morph_size = 2;
 
 // HSV thresholding
-int low_H = 32, low_S = 95, low_V = 81;
-int high_H = 87, high_S = max_value, high_V = max_value;
+int low_H = 30, low_S = 95, low_V = 81;
+int high_H = 90, high_S = max_value, high_V = max_value;
 
 PlantDetector::PlantDetector(int showWindows) : 
 	m_showWindows(showWindows), m_inited(false), m_plantFilter(NULL)
@@ -35,8 +31,8 @@ int PlantDetector::init(VisionParams visionParams)
 
 	/* Initialize blob parameters */
 	// Change thresholds
-	m_blobParams.minThreshold = 10;
-	m_blobParams.maxThreshold = 240;
+	m_blobParams.minThreshold = 0;
+	m_blobParams.maxThreshold = 255;
 	// Not filtering by color
 	m_blobParams.filterByColor = false;
 
@@ -60,10 +56,9 @@ int PlantDetector::init(VisionParams visionParams)
 		// Create the windows
 		namedWindow(window_capture_name);
 		namedWindow(window_color_threshold_name);
-		namedWindow(window_edge_detection);
-		namedWindow(window_erosions);
-		namedWindow(window_dilations);
 		namedWindow(window_blob_detection);
+		namedWindow(window_morphs);
+		namedWindow(window_test);
 
 		// Trackbars to set thresholds for rgb values
 		createTrackbar("Low H", window_color_threshold_name, &low_H, max_value, on_low_H_thresh_trackbar);
@@ -72,12 +67,8 @@ int PlantDetector::init(VisionParams visionParams)
 		createTrackbar("High S", window_color_threshold_name, &high_S, max_value, on_high_S_thresh_trackbar);
 		createTrackbar("Low V", window_color_threshold_name, &low_V, max_value, on_low_V_thresh_trackbar);
 		createTrackbar("High V", window_color_threshold_name, &high_V, max_value, on_high_V_thresh_trackbar);
-		createTrackbar("Canny threshold1 Scharr", window_edge_detection, &edgeThresh1, MAX_EDGE_THRESHOLD, on_edge_thresh1_trackbar);
-		createTrackbar("Kernel size:\n 2n +1", window_erosions,
-			&erosion_size, max_kernel_size,
-			0);
-		createTrackbar("Kernel size:\n 2n +1", window_dilations,
-			&dilation_size, max_kernel_size,
+		createTrackbar("Kernel size (morphs):\n 2n +1", window_morphs,
+			&morph_size, max_kernel_size,
 			0);
 	}
 
@@ -94,7 +85,10 @@ int PlantDetector::processFrame(Mat frame)
 	}
 
 	// Convert from BGR to HSV colorspace
-	cvtColor(frame, hsvFrame, COLOR_BGR2HSV);
+	cv::cvtColor(frame, hsvFrame, COLOR_BGR2HSV);
+
+	// Blur the image
+	cv::GaussianBlur(hsvFrame, blurFrame, cv::Size(1, 1), 2, 2);
 
 	colorMask = ColorThresholding(hsvFrame);
 	// Copy original frame to greenFrame with the colorMask
@@ -102,37 +96,44 @@ int PlantDetector::processFrame(Mat frame)
 	hsvFrame.copyTo(greenFrame, colorMask);
 
 	// Erode/Dilate (use the green thresholded image)
-	erosion_dst = Erosion(colorMask);
-	dilation_dst = Dilation(erosion_dst);
+	Mat morphElement = getStructuringElement(morph_type,
+		Size(2 * morph_size + 1, 2 * morph_size + 1),
+		Point(morph_size, morph_size));
 
-	//// Edge detection
-	cannyEdges = GetEdges(dilation_dst);
-	// We now have a binary mask of edges
+	// Performing morphological on the colorMasked frame
+	morphFrame = colorMask;
+
+	// Do some number of morph openings
+	erode(morphFrame, morphFrame, morphElement, Point(-1, -1), 1);
+	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), 1);
+
+	// Do some number of morph closings
+	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), 10);
+	erode(morphFrame, morphFrame, morphElement, Point(-1, -1), 10);
 
 	// Shape Processing (Blob detection)
-	vector<KeyPoint> detectedBlobs = DetectBlobs(cannyEdges);
+	vector<KeyPoint> detectedBlobs = DetectBlobs(morphFrame);
 
 	// Save latest objects detected
 	m_lastObjectsFound = detectedBlobs;
 
 	// Filter weeds from this object list
 	m_weedList.clear();
-	m_weedList = m_plantFilter->filterWeeds(m_lastObjectsFound);
+//	m_weedList = m_plantFilter->filterWeeds(m_lastObjectsFound);
 
 	// If we are showing windows ...
 	if (m_showWindows)
 	{
 		// Show the original, scaled frame
-		imshow(window_capture_name, hsvFrame);
+		imshow(window_capture_name, blurFrame);
 		imshow(window_color_threshold_name, greenFrame);
-		imshow(window_erosions, erosion_dst);
-		imshow(window_dilations, dilation_dst);
-		imshow(window_edge_detection, cannyEdges);
+		imshow(window_morphs, morphFrame);
 		// Draw detected blobs as red circles.
 		// DrawMatchesFlags::DRAW_RICH_KEYPOINTS flag ensures
 		// the size of the circle corresponds to the size of blob
 		Mat im_with_keypoints;
-		drawKeypoints(cannyEdges, m_lastObjectsFound, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		drawKeypoints(morphFrame, m_lastObjectsFound, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		drawKeypoints(morphFrame, detectedBlobs, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		// Show blobs
 		imshow(window_blob_detection, im_with_keypoints);
 
@@ -158,42 +159,6 @@ Mat PlantDetector::ColorThresholding(Mat srcFrame)
 	return outputMask;
 }
 
-/* Edge Detection  */
-Mat PlantDetector::GetEdges(Mat srcFrame)
-{
-	static Mat outputFrame;
-	// Blur input to edge detection
-	cv::GaussianBlur(srcFrame, outputFrame, cv::Size(7, 7), 2, 2);
-	// Canny detector
-	Canny(outputFrame, outputFrame, edgeThresh1, edgeThresh1 * 3, 3);
-	return outputFrame;
-}
-
-/* erosions  */
-Mat PlantDetector::Erosion(Mat srcFrame)
-{
-	static Mat outputFrame;
-	Mat element = getStructuringElement(erosion_type,
-		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-		Point(erosion_size, erosion_size));
-
-	/// Apply the erosion operation
-	erode(srcFrame, outputFrame, element);
-	return outputFrame;
-}
-
-/* dilations  */
-Mat PlantDetector::Dilation(Mat srcFrame)
-{
-	static Mat outputFrame;
-	Mat element = getStructuringElement(dilation_type,
-		Size(2 * dilation_size + 1, 2 * dilation_size + 1),
-		Point(dilation_size, dilation_size));
-	/// Apply the dilation operation
-	dilate(srcFrame, outputFrame, element);
-	return outputFrame;
-}
-
 vector<KeyPoint> PlantDetector::DetectBlobs(Mat srcFrame)
 {
 	// Storage for blobs
@@ -203,15 +168,11 @@ vector<KeyPoint> PlantDetector::DetectBlobs(Mat srcFrame)
 	Ptr<SimpleBlobDetector> detector = SimpleBlobDetector::create(m_blobParams);
 
 	// Detect blobs
-	detector->detect(cannyEdges, keypoints);
+	detector->detect(srcFrame, keypoints);
 
 	return keypoints;
 }
 
-static void on_edge_thresh1_trackbar(int, void *)
-{
-	setTrackbarPos("thresh1", window_edge_detection, edgeThresh1);
-}
 static void on_low_H_thresh_trackbar(int, void *)
 {
 	low_H = min(high_H - 1, low_H);
