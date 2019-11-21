@@ -15,6 +15,7 @@ const int max_kernel_size = 21;
 
 // For erosions and dilations
 int morph_size = 2;
+int morph_closing_iterations = 10;
 
 // HSV thresholding
 int low_H = 30, low_S = 95, low_V = 81;
@@ -40,12 +41,21 @@ PlantDetector::~PlantDetector()
 
 int PlantDetector::init(VisionParams visionParams)
 {
+	m_visionParams = visionParams;
+
+	low_H = m_visionParams.lowH;	
+	low_S = m_visionParams.lowS;	
+	low_V = m_visionParams.lowV;	
+	high_H = m_visionParams.highH;	
+	morph_size = m_visionParams.morphSize;	
+	morph_closing_iterations = m_visionParams.morphClosingIters;	
+
 	// If proper frame size not provided
 	if (visionParams.frameSize == Size(0,0)) {
 		return false;
 	}
 	// Initialize plant filter
-	m_plantFilter = new PlantFilter(visionParams);
+	m_plantFilter = new PlantFilter(m_visionParams);
 
 	if (NULL == m_plantFilter) {
 		return false;
@@ -60,8 +70,8 @@ int PlantDetector::init(VisionParams visionParams)
 
 	// Filter by Area (TODO: EXPERIMENT WITH THIS)
 	m_blobParams.filterByArea = false;
-	m_blobParams.minArea = visionParams.minWeedSize;
-	m_blobParams.maxArea = visionParams.frameSize.width;
+	m_blobParams.minArea = m_visionParams.minWeedSize;
+	m_blobParams.maxArea = m_visionParams.frameSize.width;
 
 	// Filter by circularity ?
 	m_blobParams.filterByCircularity = false;
@@ -131,8 +141,8 @@ int PlantDetector::processFrame(Mat frame)
 	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), 1);
 
 	// Do some number of morph closings
-	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), 10);
-	erode(morphFrame, morphFrame, morphElement, Point(-1, -1), 10);
+	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), morph_closing_iterations);
+	erode(morphFrame, morphFrame, morphElement, Point(-1, -1), morph_closing_iterations);
 
 	// Shape Processing (Blob detection)
 	vector<KeyPoint> detectedBlobs = DetectBlobs(morphFrame);

@@ -20,12 +20,24 @@ fov_width_cm: 60
 fov_height_cm: 45
 
 min_weed_size_cm: 1
-max_weed_size_cm: 60
+max_weed_size_cm: 100
 
-default_weed_size_threshold_cm: 4
+# Anything bigger is automatically a plant!
+# Increase to overdetect weeds
+default_weed_size_threshold_cm: 5
 
 min_accumulator_size: 10
-max_accumulator_size: 50
+max_accumulator_size: 80
 
-x_scale_image: 0.20
-y_scale_image: 0.20
+# Image processing configs
+low_hue: 30
+low_sat: 95
+low_value: 81
+
+high_hue: 90
+
+morph_size: 2
+morph_closing_iterations: 8
+
+x_scale_image: 0.15
+y_scale_image: 0.15

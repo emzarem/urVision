@@ -10,7 +10,6 @@ PlantFilter::PlantFilter(VisionParams visionParams) :
 	if (visionParams.defaultWeedThreshold > 0)
 	{
 		m_otsuThreshold = visionParams.defaultWeedThreshold;
-		m_otsuThresholdNorm = (uint8_t)(255 * (m_otsuThreshold / ((float)m_maxSize)));
 	}
 }
 
@@ -29,13 +28,13 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 		// Verify bigger than minimum size, otherwise completely ignore
 		if (it->size >= m_visionParams.minWeedSize)
 		{
-			uint8_t normalizedSize = (uint8_t)(255 * (it->size / ((float)m_maxSize)));
-			// Add normalized size to overall otsu size accumulator
-			addToAccumulator(m_normalizedOtsuAccumulator, normalizedSize, m_visionParams.minAccumulatorSize);
+			// Add size to overall otsu size accumulator
+			addToAccumulator(m_otsuAccumulator, it->size, m_visionParams.maxAccumulatorSize);
 
-			// If greater than max weed size, this is a crop
-			if (it->size > m_visionParams.maxWeedSize)
+			// If size is greater than our default weed size threshold
+			if (it->size > m_visionParams.defaultWeedThreshold)
 			{
+				// This is just another crop!
 				addToAccumulator(m_cropSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
 				addToAccumulator(m_cropXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
 
@@ -43,11 +42,20 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 				m_cropSizeStdDev = getStdDev(m_cropSizeAccumulator);
 				m_cropSizeMean = getMean(m_cropSizeAccumulator);
 			}
-			// We can use our otsu size threshold (classifying objects)
-			else if (m_otsuThresholdNorm > 0)
+			else if (m_otsuThreshold > 0 && it->size < m_otsuThreshold)
 			{
-				// If we can safely say this is a crop (based on otsu threshold)
-				if (normalizedSize > m_otsuThresholdNorm)
+				// Identify as a weed!
+				addToAccumulator(m_weedSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
+				addToAccumulator(m_weedXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
+				// Add to output list of filtered weeds
+				outputWeeds.push_back(*it);
+			}
+			// If we have enough information about identified crops
+			else if (m_cropSizeAccumulator.size() > m_visionParams.minAccumulatorSize)
+			{
+				// If this size is greater than the current mean
+				// size is less than 2 stddevs away from the average crop size
+				if ( (it->size - m_cropSizeMean) > -2*m_cropSizeStdDev)
 				{
 					// This is just another crop!
 					addToAccumulator(m_cropSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
@@ -59,54 +67,44 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 				}
 				else
 				{
-					// If we have enough information about identified crops
-					if (m_cropSizeAccumulator.size() > m_visionParams.minAccumulatorSize)
-					{
-						// If this size is greater than the current mean
-						// size is less than 2 stddevs away from the average crop size
-						if (it->size > m_cropSizeMean ||
-							abs(m_cropSizeMean - it->size) <= 2 * m_cropSizeStdDev)
-						{
-							// This is just another crop!
-							addToAccumulator(m_cropSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-							addToAccumulator(m_cropXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
+					// Identify as a weed!
+					addToAccumulator(m_weedSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
+					addToAccumulator(m_weedXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
+					// Add to output list of filtered weeds
+					outputWeeds.push_back(*it);
+				}
 
-							// Recalculate mean and stddev
-							m_cropSizeStdDev = getStdDev(m_cropSizeAccumulator);
-							m_cropSizeMean = getMean(m_cropSizeAccumulator);
-						}
-						else
-						{
-
-							// Identify as a weed!
-							addToAccumulator(m_weedSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-							addToAccumulator(m_weedXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
-
-							// Add to output list of filtered weeds
-							outputWeeds.push_back(*it);
-						}
-
-						// Check for error in accumulator
-						if (m_cropSizeAccumulator.size() > m_visionParams.maxAccumulatorSize)
-						{
-							printf("Error -- accumulator growing too big\n");
-						}
-					}
+				// Check for error in accumulator
+				if (m_cropSizeAccumulator.size() > m_visionParams.maxAccumulatorSize)
+				{
+					printf("Error -- accumulator growing too big\n");
 				}
 			}
 		}
 	}
 
 	// If we have enough general data to classify an otsu threshold
-	if (m_normalizedOtsuAccumulator.size() >= m_visionParams.minAccumulatorSize)
+	if (m_otsuAccumulator.size() >= m_visionParams.minAccumulatorSize)
 	{
-		// Classify using Otsu's (histogram) method
-		Mat otsuHistogram;
-		// Populate "histogram matrix"
-		otsuHistogram = Mat(m_normalizedOtsuAccumulator);
-		m_otsuThresholdNorm = (float)threshold(otsuHistogram, otsuHistogram, 0, UINT8_MAX, CV_THRESH_BINARY | CV_THRESH_OTSU);
-		// For pubishing purposes
-		m_otsuThreshold = m_otsuThresholdNorm*((float)m_maxSize)/255;
+		/* Classify using Otsu's (histogram) method */
+
+		// Normalize otsu accumulator between 0-255
+		// Get current max value
+		float maxValue = *max_element(m_otsuAccumulator.begin(), m_otsuAccumulator.end());
+		float minValue = *min_element(m_otsuAccumulator.begin(), m_otsuAccumulator.end());
+		vector<uint8_t> otsuAccumulatorNorm;
+		otsuAccumulatorNorm.clear();
+		// Normalize the current values in the accumulator
+		for (vector<float>::iterator it = m_otsuAccumulator.begin(); it != m_otsuAccumulator.end(); ++it)
+		{
+			uint8_t normalizedValue = (uint8_t)(((*it - minValue)/(maxValue - minValue))*255);
+			otsuAccumulatorNorm.push_back(normalizedValue);
+		}
+		// Create "histogram" matrix
+		Mat otsuHistogramNorm = Mat(otsuAccumulatorNorm);
+		float m_otsuThresholdNorm = (float)threshold(otsuHistogramNorm, otsuHistogramNorm, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+		// un-normalize the threshold!
+		m_otsuThreshold = (m_otsuThresholdNorm/255.0)*(maxValue - minValue) + minValue;
 	}
 
 	return outputWeeds;

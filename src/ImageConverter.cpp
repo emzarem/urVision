@@ -164,7 +164,10 @@ public:
 		}
 
 		// Publish weeddaata
-		m_weedDataPublisher.publish(weed_msg);
+		if (weed_msg.weeds.size() > 0)
+		{
+			m_weedDataPublisher.publish(weed_msg);
+		}
 
 		// Publish weed keypoints drawn on original image
 		Mat im_with_keypoints;
@@ -202,6 +205,13 @@ public:
 
 		if (!m_nodeHandle.getParam("min_accumulator_size", m_visionParams.minAccumulatorSize)) return false;
 		if (!m_nodeHandle.getParam("max_accumulator_size", m_visionParams.maxAccumulatorSize)) return false;
+
+		if (!m_nodeHandle.getParam("low_hue", m_visionParams.lowH)) return false;
+		if (!m_nodeHandle.getParam("low_sat", m_visionParams.lowS)) return false;
+		if (!m_nodeHandle.getParam("low_value", m_visionParams.lowV)) return false;
+		if (!m_nodeHandle.getParam("high_hue", m_visionParams.highH)) return false;
+		if (!m_nodeHandle.getParam("morph_size", m_visionParams.morphSize)) return false;
+		if (!m_nodeHandle.getParam("morph_closing_iterations", m_visionParams.morphClosingIters)) return false;
 
 		return true;
 	}

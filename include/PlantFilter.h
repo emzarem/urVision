@@ -33,7 +33,15 @@ public:
 	int minAccumulatorSize;
 	int maxAccumulatorSize;
 
+	// TODO: implement this one
 	int otsuHistogramsize;
+
+	int lowH;
+	int lowS;
+	int lowV;
+	int highH;
+	int morphSize;
+	int morphClosingIters;
 };
 
 class PlantFilter
@@ -47,7 +55,6 @@ public:
 
 	VisionParams m_visionParams;
 	float m_otsuThreshold;
-	float m_otsuThresholdNorm;
 
 	int m_maxSize;
 
@@ -57,10 +64,10 @@ public:
 	vector<float> m_weedSizeAccumulator;
 	vector<float> m_cropSizeAccumulator;
 
+	vector<float> m_otsuAccumulator;
+
 	float m_cropSizeMean;
 	float m_cropSizeStdDev;
-
-	vector<uint8_t> m_normalizedOtsuAccumulator;
 
 private:
 	template<typename T>

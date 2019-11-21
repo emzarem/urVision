@@ -36,6 +36,8 @@ public:
 	// Blob detector parameters (dynamic)
 	SimpleBlobDetector::Params m_blobParams;
 
+	VisionParams m_visionParams;
+
 private:
 	vector<KeyPoint> DetectBlobs(Mat srcFrame);
 	Mat ColorThresholding(Mat srcFrame);
