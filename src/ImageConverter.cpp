@@ -7,6 +7,7 @@
 
 #include <urVision/weedDataArray.h>
 #include <urVision/weedData.h>
+#include <std_msgs/Float32.h>
 
 const std::string OPENCV_WINDOW = "urVision Window";
 
@@ -17,10 +18,14 @@ class ImageConverter
 	ros::NodeHandle& m_nodeHandle;
 
 	image_transport::ImageTransport m_imageTransport;
-	image_transport::Subscriber m_imageSubscriber;
-	image_transport::Publisher m_imagePublisher;  
 
-	ros::Publisher m_weedDataPublisher;  
+	// Subscribers
+	image_transport::Subscriber m_imageSubscriber;
+
+	// Publishers
+	image_transport::Publisher m_imagePublisher;  
+	ros::Publisher m_weedDataPublisher;
+	ros::Publisher m_weedThresholdPublisher;
 
 	// For topic names
 	std::string m_cameraName;
@@ -28,6 +33,7 @@ class ImageConverter
 
 	std::string m_imagePublisherName;
 	std::string m_weedDataPublisherName;
+	std::string m_weedThresholdPublisherName;
 
 	bool m_showWindow;
 	bool m_haveFrame;
@@ -73,6 +79,8 @@ public:
 		m_imagePublisher = m_imageTransport.advertise(m_imagePublisherName, 1);
 
 	  	m_weedDataPublisher = m_nodeHandle.advertise<urVision::weedDataArray>(m_weedDataPublisherName, 1);
+
+	  	m_weedThresholdPublisher = m_nodeHandle.advertise<std_msgs::Float32>(m_weedThresholdPublisherName, 1);
 
 		ROS_INFO("ImageConverter Pipeline started successfully!");
 
@@ -132,34 +140,41 @@ public:
 			ros::requestShutdown();
 		}
 
-		ROS_INFO("Processed Frame: %i", (int)m_frameNum);
+		if (m_frameNum % 10 == 0)
+		{
+			ROS_INFO("Processed Frame: %i", (int)m_frameNum);			
+		}
 
-		// Get the weed list for this frame!	
+		// msg array to publish
+		urVision::weedDataArray weed_msg;	
+
+		// Get the weed list for this frame!
 		vector<KeyPoint> weedList = m_detector->getWeedList();
 		for (vector<KeyPoint>::iterator it = weedList.begin(); it != weedList.end(); ++it)
 		{
 			/* Populating weedData list to be published */
-			// urVision::weedData weed_data;
-			// urVision::weedDataArray weed_msg;
+			urVision::weedData weed_data;
 
-			// Set the data
-			// Something like:
-			// weed_data.x_cm = ; weed_data.y_cm = , 
-			// weed_msg.weeds.push_back(weed_data)
-
-			// data.upperleft=0; data.lowerRight=100; data.color="red"; data.cameraID="one";
-			// msg.images.push_back(data);
-			// data.upperleft=1; data.lowerRight=101; data.color="blue"; data.cameraID="two";
-			// msg.images.push_back(data);
-
-			// m_weedDataPublisher.publish(weed_msg);
+			// Set the data Something like:
+			weed_data.x_cm = (int)(it->pt.x * scaleFactorX); 
+			weed_data.y_cm = (int)(it->pt.y * scaleFactorY); 
+			weed_data.size_cm = (float)(it->size * sizeScale);
+			weed_data.time = (float)-1;
+			weed_msg.weeds.push_back(weed_data);
 		}
+
+		// Publish weeddaata
+		m_weedDataPublisher.publish(weed_msg);
 
 		// Publish weed keypoints drawn on original image
 		Mat im_with_keypoints;
 		drawKeypoints(currentFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		cv_ptr->image = im_with_keypoints;
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
+
+		std_msgs::Float32 otsuThreshold;
+		otsuThreshold.data = (float)(m_detector->getWeedThreshold() * sizeScale);
+		m_weedThresholdPublisher.publish(otsuThreshold);
 	}
 
 	// General parameters for this node
@@ -169,6 +184,7 @@ public:
 		if (!m_nodeHandle.getParam("image_topic", m_imageTopic)) return false;
 		if (!m_nodeHandle.getParam("image_publisher", m_imagePublisherName)) return false;
 		if (!m_nodeHandle.getParam("weed_data_publisher", m_weedDataPublisherName)) return false;
+		if (!m_nodeHandle.getParam("weed_threshold_publisher", m_weedThresholdPublisherName)) return false;
 		if (!m_nodeHandle.getParam("show_img_window", m_showWindow)) return false;
 
 		return true;

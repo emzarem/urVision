@@ -7,6 +7,7 @@ image_topic: /image_raw
 
 image_publisher: /image_converter/output_video
 weed_data_publisher: /vision_target/weed_data
+weed_threshold_publisher: /vision_target/otsu_threshold
 
 show_img_window: false
 
@@ -18,4 +19,7 @@ min_weed_size_cm: 0
 max_weed_size_cm: 1000
 
 default_weed_size_threshold_cm: 26
+
+min_accumulator_size: 10
+max_accumulator_size: 100
 

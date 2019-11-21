@@ -12,30 +12,6 @@
 using namespace cv;
 using namespace std;
 
-// Some constants
-const int MAX_EDGE_THRESHOLD = 200;
-const int max_value_H = 360 / 2;
-const int max_value = 255;
-
-const int morph_type = MORPH_ELLIPSE;
-
-const int max_kernel_size = 21;
-
-const String window_capture_name = "Current Frame";
-const String window_color_threshold_name = "Color Threshold";
-const String window_blob_detection = "Blob Detection";
-const String window_test = "Window Test";
-const String window_morphs = "Morphological Output";
-
-// Trackbar callback prototypes
-static void on_edge_thresh1_trackbar(int, void *);
-static void on_low_H_thresh_trackbar(int, void *);
-static void on_high_H_thresh_trackbar(int, void *);
-static void on_low_S_thresh_trackbar(int, void *);
-static void on_high_S_thresh_trackbar(int, void *);
-static void on_low_V_thresh_trackbar(int, void *);
-static void on_high_V_thresh_trackbar(int, void *);
-
 class PlantDetector
 {
 public:
@@ -46,6 +22,7 @@ public:
 	int processFrame(Mat frame);
 
 	vector<KeyPoint> getWeedList();
+	float getWeedThreshold();
 
 	vector<KeyPoint> m_lastObjectsFound;
 	vector<KeyPoint> m_weedList;

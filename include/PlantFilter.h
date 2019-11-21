@@ -47,6 +47,9 @@ public:
 
 	VisionParams m_visionParams;
 	float m_otsuThreshold;
+	float m_otsuThresholdNorm;
+
+	int m_maxSize;
 
 	vector<float> m_weedXAccumulator;
 	vector<float> m_cropXAccumulator;
@@ -57,7 +60,7 @@ public:
 	float m_cropSizeMean;
 	float m_cropSizeStdDev;
 
-	vector<uint8_t> m_otsuAccumulator;
+	vector<uint8_t> m_normalizedOtsuAccumulator;
 
 private:
 	template<typename T>

@@ -1,11 +1,33 @@
 #include "../include/PlantDetector.h"
 
+const String window_capture_name = "Current Frame";
+const String window_color_threshold_name = "Color Threshold";
+const String window_blob_detection = "Blob Detection";
+const String window_test = "Window Test";
+const String window_morphs = "Morphological Output";
+
+// Some constants
+const int max_value_H = 360 / 2;
+const int max_value = 255;
+
+const int morph_type = MORPH_ELLIPSE;
+const int max_kernel_size = 21;
+
 // For erosions and dilations
 int morph_size = 2;
 
 // HSV thresholding
 int low_H = 30, low_S = 95, low_V = 81;
 int high_H = 90, high_S = max_value, high_V = max_value;
+
+// Trackbar callback prototypes
+static void on_edge_thresh1_trackbar(int, void *);
+static void on_low_H_thresh_trackbar(int, void *);
+static void on_high_H_thresh_trackbar(int, void *);
+static void on_low_S_thresh_trackbar(int, void *);
+static void on_high_S_thresh_trackbar(int, void *);
+static void on_low_V_thresh_trackbar(int, void *);
+static void on_high_V_thresh_trackbar(int, void *);
 
 PlantDetector::PlantDetector(int showWindows) : 
 	m_showWindows(showWindows), m_inited(false), m_plantFilter(NULL)
@@ -39,6 +61,7 @@ int PlantDetector::init(VisionParams visionParams)
 	// Filter by Area (TODO: EXPERIMENT WITH THIS)
 	m_blobParams.filterByArea = false;
 	m_blobParams.minArea = visionParams.minWeedSize;
+	m_blobParams.maxArea = visionParams.frameSize.width;
 
 	// Filter by circularity ?
 	m_blobParams.filterByCircularity = false;
@@ -48,7 +71,7 @@ int PlantDetector::init(VisionParams visionParams)
 	// m_blobParams.minConvexity = 0.87;
 
 	// Filter by Inertia (TODO: ADJUST THIS)
-	m_blobParams.filterByInertia = true;
+	m_blobParams.filterByInertia = false;
 	m_blobParams.minInertiaRatio = 0.01;
 
 	if (m_showWindows)
@@ -132,7 +155,7 @@ int PlantDetector::processFrame(Mat frame)
 		// DrawMatchesFlags::DRAW_RICH_KEYPOINTS flag ensures
 		// the size of the circle corresponds to the size of blob
 		Mat im_with_keypoints;
-		drawKeypoints(morphFrame, m_lastObjectsFound, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		drawKeypoints(morphFrame, detectedBlobs, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		// Show blobs
 		imshow(window_blob_detection, im_with_keypoints);
 
@@ -151,6 +174,12 @@ vector<KeyPoint> PlantDetector::getWeedList()
 {
 	return m_weedList;
 }
+
+float PlantDetector::getWeedThreshold()
+{
+	return m_plantFilter->m_otsuThreshold;
+}
+
 
 /* HSV thresholding
 *	Returns a binary colorMask
