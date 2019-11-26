@@ -11,7 +11,7 @@ weed_threshold_publisher: /vision_target/otsu_threshold
 
 show_img_window: true
 
-test_image: /home/aruby/catkin_ws/src/urVision/test_images/lettuce.JPG
+#test_image: /home/aruby/catkin_ws/src/urVision/test_images/lettuce.JPG
 # Frame rate in Hz
 frame_rate: 10
 
