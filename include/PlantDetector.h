@@ -19,7 +19,7 @@ public:
 	~PlantDetector();
 
 	int init(VisionParams visionParams);
-	int processFrame(Mat frame);
+	int processFrame(Mat& frame);
 
 	vector<KeyPoint> getWeedList();
 	float getWeedThreshold();
@@ -39,8 +39,8 @@ public:
 	VisionParams m_visionParams;
 
 private:
-	vector<KeyPoint> DetectBlobs(Mat srcFrame);
-	Mat ColorThresholding(Mat srcFrame);
+	vector<KeyPoint> DetectBlobs(Mat& srcFrame);
+	Mat ColorThresholding(Mat& srcFrame);
 
 	// Various image holders
 	Mat scaledFrame;

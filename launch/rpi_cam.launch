@@ -40,10 +40,10 @@
         ns="$(arg cam_name)" />
 
   <arg name="startup_msg" default="CSI Camera Stream Started Successfully!" />
-  <node name="pub_text" pkg="rostopic" type="rostopic"
-  args="pub /startup_msg std_msgs/String '$(arg startup_msg)'"
-  output="screen" />
-  <node name="print_text" pkg="rostopic" type="rostopic"
-  args="echo /startup_msg" output="screen" />
+    <node name="pub_text" pkg="rostopic" type="rostopic"
+    args="pub /startup_msg std_msgs/String '$(arg startup_msg)'"
+    output="screen" />
+    <node name="print_text" pkg="rostopic" type="rostopic"
+    args="echo /startup_msg" output="screen" />
         
 </launch>

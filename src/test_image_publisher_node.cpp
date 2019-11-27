@@ -1,4 +1,3 @@
-#include "urVision/RosPackageTemplate.hpp"
 #include "PlantDetector.h"
 #include "ImageConverter.cpp"
 

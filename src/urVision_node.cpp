@@ -1,5 +1,4 @@
 // Project internal includes
-#include "urVision/RosPackageTemplate.hpp"
 #include "PlantDetector.h"
 #include "ImageConverter.cpp"
 
@@ -9,10 +8,7 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "urVision");
 	ros::NodeHandle nodeHandle("~");
-
-	// Stub class
-	urVision::RosPackageTemplate rosPackageTemplate(nodeHandle);
-
+	
 	// Instantiate imageConverter class
 	ImageConverter imageConverter(nodeHandle);
 	// Initialize the imageConverter

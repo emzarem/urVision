@@ -87,7 +87,6 @@ int PlantDetector::init(VisionParams visionParams)
 	if (m_showWindows)
 	{
 		// Create the windows
-		namedWindow(window_capture_name);
 		namedWindow(window_color_threshold_name);
 		namedWindow(window_blob_detection);
 		namedWindow(window_morphs);
@@ -111,7 +110,7 @@ int PlantDetector::init(VisionParams visionParams)
 }
 
 /* Main Processing Pipeline */
-int PlantDetector::processFrame(Mat frame)
+int PlantDetector::processFrame(Mat& frame)
 {
 	if (!m_inited) {
 		return false;
@@ -121,7 +120,7 @@ int PlantDetector::processFrame(Mat frame)
 	cv::cvtColor(frame, hsvFrame, COLOR_BGR2HSV);
 
 	// Blur the image
-	cv::GaussianBlur(hsvFrame, blurFrame, cv::Size(1, 1), 2, 2);
+	// cv::GaussianBlur(hsvFrame, blurFrame, cv::Size(1, 1), 2, 2);
 
 	colorMask = ColorThresholding(hsvFrame);
 	// Copy original frame to greenFrame with the colorMask
@@ -157,21 +156,16 @@ int PlantDetector::processFrame(Mat frame)
 	// If we are showing windows ...
 	if (m_showWindows)
 	{
-		// Show the original, scaled frame
-		imshow(window_capture_name, blurFrame);
+		// Show color thresholded image
 		imshow(window_color_threshold_name, greenFrame);
+		// Show morphological output
 		imshow(window_morphs, morphFrame);
 		// Draw detected blobs as red circles.
-		// DrawMatchesFlags::DRAW_RICH_KEYPOINTS flag ensures
-		// the size of the circle corresponds to the size of blob
 		Mat im_with_keypoints;
 		drawKeypoints(morphFrame, detectedBlobs, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-		// Show blobs
 		imshow(window_blob_detection, im_with_keypoints);
-
 		// Now draw only with filtered weeds
 		drawKeypoints(morphFrame, m_weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-		// Show blobs
 		imshow(window_test, im_with_keypoints);
 
 		cv::waitKey(3);
@@ -194,7 +188,7 @@ float PlantDetector::getWeedThreshold()
 /* HSV thresholding
 *	Returns a binary colorMask
 */
-Mat PlantDetector::ColorThresholding(Mat srcFrame)
+Mat PlantDetector::ColorThresholding(Mat& srcFrame)
 {
 	Mat outputMask;
 	// Color thresholding
@@ -202,7 +196,7 @@ Mat PlantDetector::ColorThresholding(Mat srcFrame)
 	return outputMask;
 }
 
-vector<KeyPoint> PlantDetector::DetectBlobs(Mat srcFrame)
+vector<KeyPoint> PlantDetector::DetectBlobs(Mat& srcFrame)
 {
 	// Storage for blobs
 	vector<KeyPoint> keypoints;

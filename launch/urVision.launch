@@ -1,8 +1,9 @@
 <launch>
+	<!-- Launch the camera -->
+	<include file="$(find urVision)/launch/rpi_cam.launch"></include>
 
-  <!-- Launch ROS Package Template Node -->
-  <node pkg="urVision" type="urVision" name="urVision" output="screen">
-    <rosparam command="load" file="$(find urVision)/config/default.yaml" />
-  </node>
-
+	<!-- Launch urVision node -->
+	<node pkg="urVision" type="urVision" name="urVision" output="screen">
+		<rosparam command="load" file="$(find urVision)/config/default.yaml" />
+	</node>
 </launch>

@@ -16,6 +16,7 @@ public:
 	VisionParams() {
 		frameSize = Size(0,0);
 		defaultWeedThreshold = -1;
+		defaultCropThreshold = -1;
 		minWeedSize = 0; 
 		maxWeedSize = 0;
 		minAccumulatorSize = 0;
@@ -27,6 +28,8 @@ public:
 
 	cv::Size frameSize;
 	float defaultWeedThreshold;
+	float defaultCropThreshold;
+	
 	float minWeedSize;
 	float maxWeedSize;
 

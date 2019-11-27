@@ -47,6 +47,8 @@ class ImageConverter
 
 	float scaleFactorX, scaleFactorY, sizeScale;
 
+	ros::WallTime start_, end_;
+
 public:
 	ImageConverter(ros::NodeHandle& nodeHandle)
 	: m_nodeHandle(nodeHandle), m_imageTransport(nodeHandle), m_haveFrame(false), m_frameNum(0)
@@ -140,9 +142,15 @@ public:
 			ros::requestShutdown();
 		}
 
-		if (m_frameNum % 10 == 0)
+		// Every 10 frames, log processing rate
+		if ((m_frameNum % 10) == 1)
 		{
-			ROS_INFO("Processed Frame: %i", (int)m_frameNum);			
+			end_ = ros::WallTime::now();
+
+			double frame_rate_hz = 10.0 / ((end_ - start_).toNSec() * 1e-9);
+			ROS_INFO("Processed Frame: %i, running @ %f Hz", (int)m_frameNum, (float)frame_rate_hz);
+
+			start_ = ros::WallTime::now();		
 		}
 
 		// msg array to publish

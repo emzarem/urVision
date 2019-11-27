@@ -54,8 +54,6 @@ catkin_package(
   INCLUDE_DIRS
     include
 #    ${EIGEN3_INCLUDE_DIR}
-  LIBRARIES
-    ${PROJECT_NAME}_core
   CATKIN_DEPENDS
     roscpp
     sensor_msgs
@@ -81,15 +79,9 @@ include_directories(
 #  ${Boost_INCLUDE_DIRS}
 )
 
-## Declare a cpp library
-add_library(${PROJECT_NAME}_core
-   src/Algorithm.cpp
-)
-
 ## Declare cpp executables
 add_executable(${PROJECT_NAME}
   src/${PROJECT_NAME}_node.cpp
-  src/RosPackageTemplate.cpp
   src/PlantDetector.cpp
   src/PlantFilter.cpp
 )
@@ -100,10 +92,6 @@ add_executable(test_image_publisher
 )
 
 ## Add dependencies to exported targets, like ROS msgs or srvs
-add_dependencies(${PROJECT_NAME}_core
-  ${catkin_EXPORTED_TARGETS}
-)
-
 add_dependencies(${PROJECT_NAME}
   ${catkin_EXPORTED_TARGETS}
 )
@@ -113,13 +101,8 @@ add_dependencies(test_image_publisher
 )
 
 ## Specify libraries to link executable targets against
-target_link_libraries(${PROJECT_NAME}_core
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
 
 target_link_libraries(${PROJECT_NAME}
-  ${PROJECT_NAME}_core
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
@@ -167,5 +150,5 @@ catkin_add_gtest(${PROJECT_NAME}-test
 endif()
 
 if(TARGET ${PROJECT_NAME}-test)
-  target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME}_core)
+  target_link_libraries(${PROJECT_NAME}-test)
 endif()
