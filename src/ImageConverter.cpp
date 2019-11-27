@@ -8,6 +8,7 @@
 #include <urVision/weedDataArray.h>
 #include <urVision/weedData.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Header.h>
 
 const std::string OPENCV_WINDOW = "urVision Window";
 
@@ -167,13 +168,13 @@ public:
 			weed_data.x_cm = (int)(it->pt.x * scaleFactorX); 
 			weed_data.y_cm = (int)(it->pt.y * scaleFactorY); 
 			weed_data.size_cm = (float)(it->size * sizeScale);
-			weed_data.time = (float)-1;
 			weed_msg.weeds.push_back(weed_data);
 		}
 
 		// Publish weeddaata
 		if (weed_msg.weeds.size() > 0)
 		{
+			weed_msg.header.stamp = ros::Time::now();
 			m_weedDataPublisher.publish(weed_msg);
 		}
 
@@ -210,6 +211,7 @@ public:
 		if (!m_nodeHandle.getParam("min_weed_size_cm", minWeedSizeCm)) return false;
 		if (!m_nodeHandle.getParam("max_weed_size_cm", maxWeedSizeCm)) return false;
 		if (!m_nodeHandle.getParam("default_weed_size_threshold_cm", defaultWeedSizeCm)) return false;
+		
 
 		if (!m_nodeHandle.getParam("min_accumulator_size", m_visionParams.minAccumulatorSize)) return false;
 		if (!m_nodeHandle.getParam("max_accumulator_size", m_visionParams.maxAccumulatorSize)) return false;
