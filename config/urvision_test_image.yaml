@@ -15,11 +15,11 @@ show_img_window: true
 fov_width_cm: 60
 fov_height_cm: 45
 
-min_weed_size_cm: 1
+min_weed_size_cm: 0
 max_weed_size_cm: 100
 
-default_weed_size_threshold_cm: 5
-default_crop_size_threshold_cm: 7
+default_weed_size_threshold_cm: 8
+default_crop_size_threshold_cm: 8
 
 # Image processing configs
 low_hue: 30
@@ -29,7 +29,7 @@ low_value: 81
 high_hue: 90
 
 morph_size: 2
-morph_closing_iterations: 6
+morph_closing_iterations: 5
 
-min_accumulator_size: 2
-max_accumulator_size: 10
+min_accumulator_size: 10
+max_accumulator_size: 50

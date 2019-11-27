@@ -18,7 +18,8 @@ fov_height_cm: 35
 min_weed_size_cm: 3
 max_weed_size_cm: 1000
 
-default_weed_size_threshold_cm: 6
+default_weed_size_threshold_cm: 5
+default_crop_size_threshold_cm: 7
 
 # Image processing configs
 low_hue: 30

@@ -44,7 +44,7 @@ class ImageConverter
 
 	VisionParams m_visionParams;
 
-	int fovWidthCm, fovHeightCm, maxWeedSizeCm, minWeedSizeCm, defaultWeedSizeCm;
+	int fovWidthCm, fovHeightCm, maxWeedSizeCm, minWeedSizeCm, defaultWeedSizeCm, defaultCropSizeCm;
 
 	float scaleFactorX, scaleFactorY, sizeScale;
 
@@ -124,6 +124,7 @@ public:
 			ROS_INFO("ScaleFactors -- (xScale, yScale, sizeScale): ( %f, %f, %f)", scaleFactorX, scaleFactorY, sizeScale);
 
 			m_visionParams.defaultWeedThreshold = ((float)defaultWeedSizeCm ) / sizeScale;
+			m_visionParams.defaultCropThreshold = ((float)defaultCropSizeCm ) / sizeScale;
 			m_visionParams.minWeedSize = ((float)minWeedSizeCm ) / sizeScale;
 			m_visionParams.maxWeedSize = ((float)maxWeedSizeCm ) / sizeScale;
 
@@ -211,7 +212,8 @@ public:
 		if (!m_nodeHandle.getParam("min_weed_size_cm", minWeedSizeCm)) return false;
 		if (!m_nodeHandle.getParam("max_weed_size_cm", maxWeedSizeCm)) return false;
 		if (!m_nodeHandle.getParam("default_weed_size_threshold_cm", defaultWeedSizeCm)) return false;
-		
+		if (!m_nodeHandle.getParam("default_crop_size_threshold_cm", defaultCropSizeCm)) return false;
+
 
 		if (!m_nodeHandle.getParam("min_accumulator_size", m_visionParams.minAccumulatorSize)) return false;
 		if (!m_nodeHandle.getParam("max_accumulator_size", m_visionParams.maxAccumulatorSize)) return false;

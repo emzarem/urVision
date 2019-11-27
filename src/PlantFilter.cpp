@@ -1,15 +1,20 @@
 #include "../include/PlantFilter.h"
 #include <numeric>
+#include <ros/ros.h>
 
 PlantFilter::PlantFilter(VisionParams visionParams) :
 	m_visionParams(visionParams)
 {
 
 	m_maxSize = m_visionParams.frameSize.height;
+	m_otsuThreshold = -1;
 
-	if (visionParams.defaultWeedThreshold > 0)
+	if (visionParams.defaultWeedThreshold <= 0 || 
+			visionParams.defaultCropThreshold <= 0 ||
+			visionParams.defaultCropThreshold < visionParams.defaultWeedThreshold )
 	{
-		m_otsuThreshold = visionParams.defaultWeedThreshold;
+		ROS_ERROR("Default weed/crop thresholds have not been set properly!");
+		ros::requestShutdown();
 	}
 }
 
@@ -17,6 +22,11 @@ PlantFilter::~PlantFilter()
 {
 }
 
+/*
+	all objects with size < defaultWeedThreshold are marked as weeds
+	all objects with size > defaultCropThreshold are marked as crops
+	if defaultWeedThreshold < size < defaultCropThreshold, attempt to use otsuThresholding
+*/
 vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 {
 	vector<KeyPoint> outputWeeds;
@@ -28,56 +38,47 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 		// Verify bigger than minimum size, otherwise completely ignore
 		if (it->size >= m_visionParams.minWeedSize)
 		{
-			// Add size to overall otsu size accumulator
-			addToAccumulator(m_otsuAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-
-			// If size is greater than our default weed size threshold
-			if (it->size > m_visionParams.defaultWeedThreshold)
+			// If size is greater than our default crop size threshold
+			if (it->size > m_visionParams.defaultCropThreshold)
 			{
-				// This is just another crop!
+				// Mark as crop
 				addToAccumulator(m_cropSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
 				addToAccumulator(m_cropXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
-
-				// Recalculate mean and stddev
-				m_cropSizeStdDev = getStdDev(m_cropSizeAccumulator);
-				m_cropSizeMean = getMean(m_cropSizeAccumulator);
 			}
-			else if (m_otsuThreshold > 0 && it->size < m_otsuThreshold)
+			// If size is less than the weed threshold
+			else if (it->size < m_visionParams.defaultWeedThreshold)
 			{
 				// Identify as a weed!
 				addToAccumulator(m_weedSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
 				addToAccumulator(m_weedXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
-				// Add to output list of filtered weeds
+				// Add to output weed list
 				outputWeeds.push_back(*it);
 			}
-			// If we have enough information about identified crops
-			else if (m_cropSizeAccumulator.size() > m_visionParams.minAccumulatorSize)
+			// Else object size is in between
+			else
 			{
-				// If this size is greater than the current mean
-				// size is less than 2 stddevs away from the average crop size
-				if ( (it->size - m_cropSizeMean) > -2*m_cropSizeStdDev)
-				{
-					// This is just another crop!
-					addToAccumulator(m_cropSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-					addToAccumulator(m_cropXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
+				// Add size to overall otsu size accumulator
+				addToAccumulator(m_otsuAccumulator, it->size, m_visionParams.maxAccumulatorSize);
 
-					// Recalculate mean and stddev
-					m_cropSizeStdDev = getStdDev(m_cropSizeAccumulator);
-					m_cropSizeMean = getMean(m_cropSizeAccumulator);
-				}
-				else
+				// Can only make a decision IF otsu threshold is in between the two default sizes
+				if (m_otsuAccumulator.size() >= m_visionParams.minAccumulatorSize &&
+						m_otsuThreshold > m_visionParams.defaultWeedThreshold &&
+						m_otsuThreshold < m_visionParams.defaultCropThreshold)
 				{
-					// Identify as a weed!
-					addToAccumulator(m_weedSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-					addToAccumulator(m_weedXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
-					// Add to output list of filtered weeds
-					outputWeeds.push_back(*it);
-				}
-
-				// Check for error in accumulator
-				if (m_cropSizeAccumulator.size() > m_visionParams.maxAccumulatorSize)
-				{
-					printf("Error -- accumulator growing too big\n");
+					if (it->size > m_otsuThreshold)
+					{
+						// Mark as crop
+						addToAccumulator(m_cropSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
+						addToAccumulator(m_cropXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
+					}
+					else
+					{
+						// Identify as a weed!
+						addToAccumulator(m_weedSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
+						addToAccumulator(m_weedXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
+						// Add to output list of filtered weeds
+						outputWeeds.push_back(*it);
+					}
 				}
 			}
 		}
@@ -87,7 +88,6 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 	if (m_otsuAccumulator.size() >= m_visionParams.minAccumulatorSize)
 	{
 		/* Classify using Otsu's (histogram) method */
-
 		// Normalize otsu accumulator between 0-255
 		// Get current max value
 		float maxValue = *max_element(m_otsuAccumulator.begin(), m_otsuAccumulator.end());
