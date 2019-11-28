@@ -7,23 +7,19 @@ add_definitions(-std=c++11)
 ## enforcing cleaner code.
 #add_definitions(-std=c++11 -Wall -Werror)
 
-set(OpenCV_DIR /usr/share/OpenCV)
+# Setting OpenCV version
+find_package(OpenCV 3 REQUIRED)
+message("OpenCV version: ${OpenCV_VERSION}")
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED
   COMPONENTS
     roscpp
+    message_generation
     sensor_msgs
     cv_bridge
     std_msgs
-    message_generation
     image_transport
-)
-
-find_package(OpenCV REQUIRED
-	NO_MODULE
-	PATHS /usr/local
-	NO_DEFAULT_PATH
 )
 
 ## Find system libraries
@@ -56,10 +52,10 @@ catkin_package(
 #    ${EIGEN3_INCLUDE_DIR}
   CATKIN_DEPENDS
     roscpp
-    sensor_msgs
-    cv_bridge
-    std_msgs
     message_runtime
+    sensor_msgs
+    std_msgs
+    cv_bridge
     image_transport
 #  DEPENDS
 #    Boost
@@ -91,6 +87,9 @@ add_executable(test_image_publisher
   src/test_image_publisher_node.cpp
 )
 
+# Add message generation dependency
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
+
 ## Add dependencies to exported targets, like ROS msgs or srvs
 add_dependencies(${PROJECT_NAME}
   ${catkin_EXPORTED_TARGETS}
@@ -101,15 +100,13 @@ add_dependencies(test_image_publisher
 )
 
 ## Specify libraries to link executable targets against
-
 target_link_libraries(${PROJECT_NAME}
+  ${OpenCV_LIBS}
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(test_image_publisher
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
 )
 
 #############

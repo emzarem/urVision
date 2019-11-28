@@ -6,7 +6,7 @@
 		<!-- Test image to load -->
 		<param name="test_image" type="string" value="$(find urVision)/test_images/lettuce.JPG" />
 		<!-- Frame rate in Hz -->
-		<param name="frame_rate" type="int" value="20" />
+		<param name="frame_rate" type="int" value="5" />
 
 		<param name="x_scale_image" type="double" value="0.15" />
 		<param name="y_scale_image" type="double" value="0.15" />

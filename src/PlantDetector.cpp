@@ -15,6 +15,7 @@ const int max_kernel_size = 21;
 
 // For erosions and dilations
 int morph_size = 2;
+int morph_opening_iterations = 1;
 int morph_closing_iterations = 10;
 
 // HSV thresholding
@@ -48,6 +49,7 @@ int PlantDetector::init(VisionParams visionParams)
 	low_V = m_visionParams.lowV;	
 	high_H = m_visionParams.highH;	
 	morph_size = m_visionParams.morphSize;	
+	morph_opening_iterations = m_visionParams.morphOpeningIters;	
 	morph_closing_iterations = m_visionParams.morphClosingIters;	
 
 	// If proper frame size not provided
@@ -136,8 +138,8 @@ int PlantDetector::processFrame(Mat& frame)
 	morphFrame = colorMask;
 
 	// Do some number of morph openings
-	erode(morphFrame, morphFrame, morphElement, Point(-1, -1), 1);
-	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), 1);
+	erode(morphFrame, morphFrame, morphElement, Point(-1, -1), morph_opening_iterations);
+	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), morph_opening_iterations);
 
 	// Do some number of morph closings
 	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), morph_closing_iterations);
@@ -183,7 +185,6 @@ float PlantDetector::getWeedThreshold()
 {
 	return m_plantFilter->m_otsuThreshold;
 }
-
 
 /* HSV thresholding
 *	Returns a binary colorMask

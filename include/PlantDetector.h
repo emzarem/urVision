@@ -24,6 +24,18 @@ public:
 	vector<KeyPoint> getWeedList();
 	float getWeedThreshold();
 
+	// Various image holders
+	Mat scaledFrame;
+	Mat greenFrame;
+	Mat blurFrame;
+	Mat colorMask;
+	Mat hsvFrame;
+	Mat morphFrame;
+
+private:
+	vector<KeyPoint> DetectBlobs(Mat& srcFrame);
+	Mat ColorThresholding(Mat& srcFrame);
+
 	vector<KeyPoint> m_lastObjectsFound;
 	vector<KeyPoint> m_weedList;
 	vector<KeyPoint> m_cropList;
@@ -37,18 +49,6 @@ public:
 	SimpleBlobDetector::Params m_blobParams;
 
 	VisionParams m_visionParams;
-
-private:
-	vector<KeyPoint> DetectBlobs(Mat& srcFrame);
-	Mat ColorThresholding(Mat& srcFrame);
-
-	// Various image holders
-	Mat scaledFrame;
-	Mat greenFrame;
-	Mat blurFrame;
-	Mat colorMask;
-	Mat hsvFrame;
-	Mat morphFrame;
 };
 
 #endif

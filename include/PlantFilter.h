@@ -44,6 +44,7 @@ public:
 	int lowV;
 	int highH;
 	int morphSize;
+	int morphOpeningIters;
 	int morphClosingIters;
 };
 

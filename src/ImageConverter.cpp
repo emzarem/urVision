@@ -5,6 +5,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+// Msg types
 #include <urVision/weedDataArray.h>
 #include <urVision/weedData.h>
 #include <std_msgs/Float32.h>
@@ -181,7 +182,7 @@ public:
 
 		// Publish weed keypoints drawn on original image
 		Mat im_with_keypoints;
-		drawKeypoints(currentFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		drawKeypoints(m_detector->morphFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		cv_ptr->image = im_with_keypoints;
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
 
@@ -224,6 +225,7 @@ public:
 		if (!m_nodeHandle.getParam("high_hue", m_visionParams.highH)) return false;
 		if (!m_nodeHandle.getParam("morph_size", m_visionParams.morphSize)) return false;
 		if (!m_nodeHandle.getParam("morph_closing_iterations", m_visionParams.morphClosingIters)) return false;
+		if (!m_nodeHandle.getParam("morph_opening_iterations", m_visionParams.morphOpeningIters)) return false;
 
 		return true;
 	}

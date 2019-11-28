@@ -9,13 +9,13 @@ image_publisher: /image_converter/output_video
 weed_data_publisher: /vision_target/weed_data
 weed_threshold_publisher: /vision_target/otsu_threshold
 
-show_img_window: true
+show_img_window: false
 
 # Camera/vision parameters
 fov_width_cm: 60
 fov_height_cm: 45
 
-min_weed_size_cm: 0
+min_weed_size_cm: 1
 max_weed_size_cm: 100
 
 default_weed_size_threshold_cm: 8
@@ -29,7 +29,8 @@ low_value: 81
 high_hue: 90
 
 morph_size: 2
-morph_closing_iterations: 5
+morph_opening_iterations: 1
+morph_closing_iterations: 6
 
 min_accumulator_size: 10
 max_accumulator_size: 50
