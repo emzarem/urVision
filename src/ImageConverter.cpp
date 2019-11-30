@@ -182,7 +182,7 @@ public:
 
 		// Publish weed keypoints drawn on original image
 		Mat im_with_keypoints;
-		drawKeypoints(m_detector->morphFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		drawKeypoints(m_detector->greenFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 		cv_ptr->image = im_with_keypoints;
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
 
@@ -219,6 +219,7 @@ public:
 		if (!m_nodeHandle.getParam("min_accumulator_size", m_visionParams.minAccumulatorSize)) return false;
 		if (!m_nodeHandle.getParam("max_accumulator_size", m_visionParams.maxAccumulatorSize)) return false;
 
+		if (!m_nodeHandle.getParam("blur_kernel_size", m_visionParams.blurSize)) return false;
 		if (!m_nodeHandle.getParam("low_hue", m_visionParams.lowH)) return false;
 		if (!m_nodeHandle.getParam("low_sat", m_visionParams.lowS)) return false;
 		if (!m_nodeHandle.getParam("low_value", m_visionParams.lowV)) return false;
@@ -226,6 +227,10 @@ public:
 		if (!m_nodeHandle.getParam("morph_size", m_visionParams.morphSize)) return false;
 		if (!m_nodeHandle.getParam("morph_closing_iterations", m_visionParams.morphClosingIters)) return false;
 		if (!m_nodeHandle.getParam("morph_opening_iterations", m_visionParams.morphOpeningIters)) return false;
+		
+		if (!m_nodeHandle.getParam("min_circularity", m_visionParams.minCircularity)) return false;
+		if (!m_nodeHandle.getParam("min_convexity", m_visionParams.minConvexity)) return false;
+		if (!m_nodeHandle.getParam("min_inertia_ratio", m_visionParams.minInertiaRatio)) return false;
 
 		return true;
 	}

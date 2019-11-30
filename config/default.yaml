@@ -1,6 +1,3 @@
-# For rosPackageTemplate
-subscriber_topic: /temperature
-
 # For Image converter
 camera_name: /csi_cam_0
 image_topic: /image_rect_color
@@ -15,23 +12,34 @@ show_img_window: false
 fov_width_cm: 62
 fov_height_cm: 35
 
-min_weed_size_cm: 3
+min_weed_size_cm: 2
 max_weed_size_cm: 1000
 
-default_weed_size_threshold_cm: 5
-default_crop_size_threshold_cm: 7
+default_weed_size_threshold_cm: 8
+default_crop_size_threshold_cm: 8
 
-# Image processing configs
+############################
+# Image processing configs #
+############################
+blur_kernel_size: 15
+
+# Color thresholding
 low_hue: 30
-low_sat: 70
+low_sat: 60
 low_value: 50
-
 high_hue: 90
 
-morph_size: 2
+# Morph operations
+morph_size: 3
 morph_opening_iterations: 1
-morph_closing_iterations: 4
+morph_closing_iterations: 5
 
-min_accumulator_size: 2
-max_accumulator_size: 10
+# Blob detection
+min_circularity: 0.5
+min_convexity: 0.25
+min_inertia_ratio: 0.25
+
+# Plant filter decision accumulators
+min_accumulator_size: 10
+max_accumulator_size: 100
 

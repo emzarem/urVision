@@ -34,7 +34,6 @@ public:
 
 private:
 	vector<KeyPoint> DetectBlobs(Mat& srcFrame);
-	Mat ColorThresholding(Mat& srcFrame);
 
 	vector<KeyPoint> m_lastObjectsFound;
 	vector<KeyPoint> m_weedList;
@@ -47,6 +46,7 @@ private:
 
 	// Blob detector parameters (dynamic)
 	SimpleBlobDetector::Params m_blobParams;
+	Ptr<SimpleBlobDetector> m_blobDetector;
 
 	VisionParams m_visionParams;
 };

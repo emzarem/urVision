@@ -75,16 +75,23 @@ int PlantDetector::init(VisionParams visionParams)
 	m_blobParams.minArea = m_visionParams.minWeedSize;
 	m_blobParams.maxArea = m_visionParams.frameSize.width;
 
-	// Filter by circularity ?
-	m_blobParams.filterByCircularity = false;
+	// Filter by circularity
+	m_blobParams.filterByCircularity = true;
+	m_blobParams.minCircularity = m_visionParams.minCircularity;
+	m_blobParams.maxCircularity = 1;
 
 	// Filter by Convexity
-	m_blobParams.filterByConvexity = false;
-	// m_blobParams.minConvexity = 0.87;
+	m_blobParams.filterByConvexity = true;
+	m_blobParams.minConvexity = m_visionParams.minConvexity;
+	m_blobParams.maxConvexity = 1;
 
-	// Filter by Inertia (TODO: ADJUST THIS)
-	m_blobParams.filterByInertia = false;
-	m_blobParams.minInertiaRatio = 0.01;
+	// Filter by inertia
+	m_blobParams.filterByInertia = true;
+	m_blobParams.minInertiaRatio = m_visionParams.minInertiaRatio;
+	m_blobParams.maxInertiaRatio  = 1;
+
+	// Create the blob detector!
+	m_blobDetector = SimpleBlobDetector::create(m_blobParams);
 
 	if (m_showWindows)
 	{
@@ -118,24 +125,24 @@ int PlantDetector::processFrame(Mat& frame)
 		return false;
 	}
 
-	// Convert from BGR to HSV colorspace
-	cv::cvtColor(frame, hsvFrame, COLOR_BGR2HSV);
-
 	// Blur the image
-	// cv::GaussianBlur(hsvFrame, blurFrame, cv::Size(1, 1), 2, 2);
+	cv::blur(frame, blurFrame, Size(m_visionParams.blurSize, m_visionParams.blurSize));
 
-	colorMask = ColorThresholding(hsvFrame);
-	// Copy original frame to greenFrame with the colorMask
-	greenFrame = Scalar::all(0);
-	hsvFrame.copyTo(greenFrame, colorMask);
+	// Convert from BGR to HSV colorspace
+	cv::cvtColor(blurFrame, hsvFrame, COLOR_BGR2HSV);
 
-	// Erode/Dilate (use the green thresholded image)
+	/* HSV thresholding
+	*	Returns a binary colorMask
+	*/
+	inRange(hsvFrame, Scalar(low_H, low_S, low_V), Scalar(high_H, high_S, high_V), colorMask);
+
+	// Performing morphological on the colorMask of frame
+	morphFrame = colorMask;
+
+		// Erode/Dilate (use the green thresholded image)
 	Mat morphElement = getStructuringElement(morph_type,
 		Size(2 * morph_size + 1, 2 * morph_size + 1),
 		Point(morph_size, morph_size));
-
-	// Performing morphological on the colorMasked frame
-	morphFrame = colorMask;
 
 	// Do some number of morph openings
 	erode(morphFrame, morphFrame, morphElement, Point(-1, -1), morph_opening_iterations);
@@ -145,8 +152,13 @@ int PlantDetector::processFrame(Mat& frame)
 	dilate(morphFrame, morphFrame, morphElement, Point(-1, -1), morph_closing_iterations);
 	erode(morphFrame, morphFrame, morphElement, Point(-1, -1), morph_closing_iterations);
 
-	// Shape Processing (Blob detection)
-	vector<KeyPoint> detectedBlobs = DetectBlobs(morphFrame);
+	// Copy original frame to greenFrame with the colorMask
+	greenFrame = Scalar::all(0);
+	blurFrame.copyTo(greenFrame, morphFrame);
+
+	// Shape Processing (BLOB detection)
+	vector<KeyPoint> detectedBlobs;
+	m_blobDetector->detect(morphFrame, detectedBlobs);
 
 	// Save latest objects detected
 	m_lastObjectsFound = detectedBlobs;
@@ -184,31 +196,6 @@ vector<KeyPoint> PlantDetector::getWeedList()
 float PlantDetector::getWeedThreshold()
 {
 	return m_plantFilter->m_otsuThreshold;
-}
-
-/* HSV thresholding
-*	Returns a binary colorMask
-*/
-Mat PlantDetector::ColorThresholding(Mat& srcFrame)
-{
-	Mat outputMask;
-	// Color thresholding
-	inRange(srcFrame, Scalar(low_H, low_S, low_V), Scalar(high_H, high_S, high_V), outputMask);
-	return outputMask;
-}
-
-vector<KeyPoint> PlantDetector::DetectBlobs(Mat& srcFrame)
-{
-	// Storage for blobs
-	vector<KeyPoint> keypoints;
-
-	// Set up BlobDetector with params
-	Ptr<SimpleBlobDetector> detector = SimpleBlobDetector::create(m_blobParams);
-
-	// Detect blobs
-	detector->detect(srcFrame, keypoints);
-
-	return keypoints;
 }
 
 static void on_low_H_thresh_trackbar(int, void *)

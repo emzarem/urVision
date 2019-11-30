@@ -21,6 +21,7 @@ public:
 		maxWeedSize = 0;
 		minAccumulatorSize = 0;
 		maxAccumulatorSize = 0;
+		blurSize = 0;
 	}
 	~VisionParams(){
 
@@ -39,6 +40,7 @@ public:
 	// TODO: implement this one
 	int otsuHistogramsize;
 
+	int blurSize;
 	int lowH;
 	int lowS;
 	int lowV;
@@ -46,6 +48,10 @@ public:
 	int morphSize;
 	int morphOpeningIters;
 	int morphClosingIters;
+
+	float minCircularity;
+	float minConvexity;
+	float minInertiaRatio;
 };
 
 class PlantFilter
