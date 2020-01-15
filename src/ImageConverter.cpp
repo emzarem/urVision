@@ -120,9 +120,10 @@ public:
 			scaleFactorY = ((float)fovHeightCm) / m_visionParams.frameSize.height;
 			sizeScale = (scaleFactorX + scaleFactorY) / 2;
 			
-			ROS_INFO("FrameSize is (width, height): (%i, %i)", 
+			ROS_INFO("Image Frame Size is %ix%i [pixels]", 
 				m_visionParams.frameSize.width, m_visionParams.frameSize.height);
-			ROS_INFO("ScaleFactors -- (xScale, yScale, sizeScale): ( %f, %f, %f)", scaleFactorX, scaleFactorY, sizeScale);
+			ROS_INFO("Field of View is %ix%i [cm]", fovWidthCm, fovHeightCm);
+			ROS_INFO("ScaleFactors: (xScale,yScale,sizeScale): (%.4f,%.4f,%.4f)", scaleFactorX, scaleFactorY, sizeScale);
 
 			m_visionParams.defaultWeedThreshold = ((float)defaultWeedSizeCm ) / sizeScale;
 			m_visionParams.defaultCropThreshold = ((float)defaultCropSizeCm ) / sizeScale;
@@ -163,13 +164,16 @@ public:
 		vector<KeyPoint> weedList = m_detector->getWeedList();
 		for (vector<KeyPoint>::iterator it = weedList.begin(); it != weedList.end(); ++it)
 		{
-			/* Populating weedData list to be published */
+			// Populating weedData list to be published
 			urVision::weedData weed_data;
 
-			// Set the data Something like:
-			weed_data.x_cm = (int)(it->pt.x * scaleFactorX); 
-			weed_data.y_cm = (int)(it->pt.y * scaleFactorY); 
+			// The data in weedList received here had coordinates xE[1, framewidth], yE[1, frameheight]
+			// Need to change this to be centered around 0 for Delta arm operation
+			// e.g. x_cm = (ptx - (framewidth / 2) * scaleFactorX;
+			weed_data.x_cm = (int)((it->pt.x - (m_visionParams.frameSize.width / 2))  * scaleFactorX); 
+			weed_data.y_cm = (int)((it->pt.y - (m_visionParams.frameSize.height / 2)) * scaleFactorY); 
 			weed_data.size_cm = (float)(it->size * sizeScale);
+
 			weed_msg.weeds.push_back(weed_data);
 		}
 
@@ -204,7 +208,7 @@ public:
 		return true;
 	}
 
-		// Image converter specific parameters
+	// Image converter specific parameters
 	bool readVisionParameters()
 	{
 		// Read vision parameters
@@ -214,7 +218,6 @@ public:
 		if (!m_nodeHandle.getParam("max_weed_size_cm", maxWeedSizeCm)) return false;
 		if (!m_nodeHandle.getParam("default_weed_size_threshold_cm", defaultWeedSizeCm)) return false;
 		if (!m_nodeHandle.getParam("default_crop_size_threshold_cm", defaultCropSizeCm)) return false;
-
 
 		if (!m_nodeHandle.getParam("min_accumulator_size", m_visionParams.minAccumulatorSize)) return false;
 		if (!m_nodeHandle.getParam("max_accumulator_size", m_visionParams.maxAccumulatorSize)) return false;

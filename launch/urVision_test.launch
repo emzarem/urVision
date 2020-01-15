@@ -11,13 +11,13 @@
 		<param name="x_scale_image" type="double" value="0.20" />
 		<param name="y_scale_image" type="double" value="0.20" />
 
-        <rosparam command="load" file="$(find urVision)/config/urvision_test_image.yaml" />
+        <rosparam command="load" file="$(find urVision)/config/vision_test.yaml" />
 	</node>
 
 	<!-- Launch the urVision node -->
 	<node pkg="urVision" type="urVision" name="urVision" output="screen">
 	        <param name="test_image" type="string" value="$(find urVision)/test_images/lettuce.JPG" />
-            <rosparam command="load" file="$(find urVision)/config/urvision_test_image.yaml" />
+            <rosparam command="load" file="$(find urVision)/config/vision_test.yaml" />
 	</node>
 
 </launch>

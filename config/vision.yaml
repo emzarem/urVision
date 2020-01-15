@@ -2,19 +2,20 @@
 camera_name: /csi_cam_0
 image_topic: /image_rect_color
 
-image_publisher: /image_converter/output_video
-weed_data_publisher: /vision_target/weed_data
 weed_threshold_publisher: /vision_target/otsu_threshold
 
 show_img_window: false
 
-# Camera/vision parameters
+# Camera frame parameters (ground projection)
 fov_width_cm: 62
 fov_height_cm: 35
 
+# Any detected objects smaller than this will not be considered
 min_weed_size_cm: 2
+# Any detected objects larger than this will not be considered
 max_weed_size_cm: 1000
 
+# default thresholds uses for filtering
 default_weed_size_threshold_cm: 8
 default_crop_size_threshold_cm: 8
 

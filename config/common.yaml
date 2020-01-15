@@ -1,0 +1,4 @@
+# Common attributes (might be used by urGovernor)
+
+image_publisher: /image_converter/output_video
+weed_data_publisher: /vision_target/weed_data

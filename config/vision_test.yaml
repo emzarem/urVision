@@ -8,13 +8,16 @@ weed_threshold_publisher: /vision_target/otsu_threshold
 
 show_img_window: false
 
-# Camera/vision parameters
+# Camera frame parameters (ground projection)
 fov_width_cm: 60
 fov_height_cm: 45
 
+# Any detected objects smaller than this will not be considered
 min_weed_size_cm: 1
+# Any detected objects larger than this will not be considered
 max_weed_size_cm: 100
 
+# default thresholds uses for filtering
 default_weed_size_threshold_cm: 8
 default_crop_size_threshold_cm: 8
 
