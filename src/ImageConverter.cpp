@@ -170,8 +170,9 @@ public:
 			// The data in weedList received here had coordinates xE[1, framewidth], yE[1, frameheight]
 			// Need to change this to be centered around 0 for Delta arm operation
 			// e.g. x_cm = (ptx - (framewidth / 2) * scaleFactorX;
-			weed_data.x_cm = (int)((it->pt.x - (m_visionParams.frameSize.width / 2))  * scaleFactorX); 
-			weed_data.y_cm = (int)((it->pt.y - (m_visionParams.frameSize.height / 2)) * scaleFactorY); 
+			weed_data.x_cm = (float)((it->pt.x - (m_visionParams.frameSize.width / 2))  * scaleFactorX); 
+			weed_data.y_cm = (float)((it->pt.y - (m_visionParams.frameSize.height / 2)) * scaleFactorY); 
+			weed_data.z_cm = (float)0; // Just assume "height" == 0
 			weed_data.size_cm = (float)(it->size * sizeScale);
 
 			weed_msg.weeds.push_back(weed_data);
