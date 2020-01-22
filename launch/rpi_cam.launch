@@ -5,9 +5,10 @@
   <arg name="cam_name" default="csi_cam_$(arg sensor_id)" /> <!-- The name of the camera (corrsponding to the camera info) -->
   <arg name="frame_id" default="/$(arg cam_name)_link" />    <!-- The TF frame ID. -->
   <arg name="sync_sink" default="true" />                    <!-- Synchronize the app sink. Setting this to false may resolve problems with sub-par framerates. -->
+  <!-- Adjust these camera parameters as desired (especially framerate, can increase/decrease performance) -->
   <arg name="width" default="1280" />                        <!-- Image Width -->
   <arg name="height" default="720" />                       <!-- Image Height -->
-  <arg name="fps" default="15" />                            <!-- Desired framerate. True framerate may not reach this if set too high. -->
+  <arg name="fps" default="10" />                            <!-- Desired framerate. True framerate may not reach this if set too high. -->
 
   <!-- This guy isn't working for some reason ... -->
   <!-- For Including Camera calibration data (using camera_calibration package) -->

@@ -41,6 +41,8 @@ class ImageConverter
 	bool m_haveFrame;
 	uint64_t m_frameNum;
 
+	int m_frameLogInterval;
+
 	PlantDetector* m_detector;
 
 	VisionParams m_visionParams;
@@ -147,11 +149,11 @@ public:
 		}
 
 		// Every 10 frames, log processing rate
-		if ((m_frameNum % 10) == 1)
+		if ((m_frameNum % m_frameLogInterval) == 1)
 		{
 			end_ = ros::WallTime::now();
 
-			double frame_rate_hz = 10.0 / ((end_ - start_).toNSec() * 1e-9);
+			double frame_rate_hz = ((double)m_frameLogInterval) / ((end_ - start_).toNSec() * 1e-9);
 			ROS_INFO("Processed Frame: %i, running @ %f Hz", (int)m_frameNum, (float)frame_rate_hz);
 
 			start_ = ros::WallTime::now();		
@@ -170,11 +172,12 @@ public:
 			// The data in weedList received here had coordinates xE[1, framewidth], yE[1, frameheight]
 			// Need to change this to be centered around 0 for Delta arm operation
 			// e.g. x_cm = (ptx - (framewidth / 2) * scaleFactorX;
+			// e.g. y_cm = (pty - (frameheight / 2) * scaleFactorY;
 			weed_data.x_cm = (float)((it->pt.x - (m_visionParams.frameSize.width / 2))  * scaleFactorX); 
-			weed_data.y_cm = (float)((it->pt.y - (m_visionParams.frameSize.height / 2)) * scaleFactorY); 
+			weed_data.y_cm = (float)((it->pt.y - (m_visionParams.frameSize.height / 2)) * scaleFactorY)*-1.0; 
 			weed_data.z_cm = (float)0; // Just assume "height" == 0
 			weed_data.size_cm = (float)(it->size * sizeScale);
-
+			
 			weed_msg.weeds.push_back(weed_data);
 		}
 
@@ -205,6 +208,8 @@ public:
 		if (!m_nodeHandle.getParam("weed_data_publisher", m_weedDataPublisherName)) return false;
 		if (!m_nodeHandle.getParam("weed_threshold_publisher", m_weedThresholdPublisherName)) return false;
 		if (!m_nodeHandle.getParam("show_img_window", m_showWindow)) return false;
+
+		if (!m_nodeHandle.getParam("frames_log_interval", m_frameLogInterval)) return false;
 
 		return true;
 	}

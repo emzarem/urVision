@@ -2,3 +2,5 @@
 
 image_publisher: /image_converter/output_video
 weed_data_publisher: /vision_target/weed_data
+
+weed_threshold_publisher: /vision_target/otsu_threshold

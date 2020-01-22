@@ -2,9 +2,10 @@
 camera_name: /csi_cam_0
 image_topic: /image_rect_color
 
-weed_threshold_publisher: /vision_target/otsu_threshold
-
 show_img_window: false
+
+# Log framerate every n frames
+frames_log_interval: 100
 
 # Camera frame parameters (ground projection)
 fov_width_cm: 62

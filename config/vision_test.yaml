@@ -2,11 +2,10 @@
 camera_name: /test_image
 image_topic: /image_raw
 
-image_publisher: /image_converter/output_video
-weed_data_publisher: /vision_target/weed_data
-weed_threshold_publisher: /vision_target/otsu_threshold
-
 show_img_window: false
+
+# Log framerate every n frames
+frames_log_interval: 10
 
 # Camera frame parameters (ground projection)
 fov_width_cm: 60
