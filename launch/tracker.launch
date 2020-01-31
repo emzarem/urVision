@@ -1,0 +1,9 @@
+<launch>
+
+  <!-- Launch tracker node -->
+  <node pkg="urVision" type="tracker" name="tracker" output="screen">
+ 	<rosparam command="load" file="$(find urVision)/config/common.yaml" />
+    <rosparam command="load" file="$(find urVision)/config/tracker.yaml" />
+  </node>
+
+</launch>

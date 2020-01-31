@@ -95,8 +95,37 @@ add_dependencies(${PROJECT_NAME}
   ${catkin_EXPORTED_TARGETS}
 )
 
+# Add Object Tracker Core (as core library of tracker node)
+add_library(tracker_core
+  src/ObjectTracker.cpp
+)
+
+add_dependencies(tracker_core
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(tracker_core
+  ${catkin_LIBRARIES}
+)
+
+## Add the Tracker node
+add_executable(tracker
+    src/tracker_node.cpp
+)
+
+add_dependencies(tracker
+  tracker_core
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(tracker
+  tracker_core
+  ${catkin_LIBRARIES}
+)
+
 add_dependencies(test_image_publisher
   ${catkin_EXPORTED_TARGETS}
+  ${PROJECT_NAME}_generate_messages_cpp
 )
 
 ## Specify libraries to link executable targets against
@@ -147,5 +176,14 @@ catkin_add_gtest(${PROJECT_NAME}-test
 endif()
 
 if(TARGET ${PROJECT_NAME}-test)
-  target_link_libraries(${PROJECT_NAME}-test)
+  target_link_libraries(${PROJECT_NAME}-test
+)
+
+catkin_add_gtest(ObjectTracker-test
+  test/ObjectTrackerTest.cpp
+)
+endif()
+
+if(TARGET ObjectTracker-test)
+  target_link_libraries(ObjectTracker-test ${PROJECT_NAME}_core)
 endif()

@@ -13,6 +13,9 @@
 		<rosparam command="load" file="$(find urVision)/config/common.yaml" />
 	</node>
 
+	<!-- Launch the Tracker -->
+	<include file="$(find urVision)/launch/tracker.launch"></include>
+
 	<!-- Launch the urVision node -->
 	<node pkg="urVision" type="urVision" name="urVision" output="screen">
 		<param name="test_image" type="string" value="$(find urVision)/test_images/lettuce.JPG" />

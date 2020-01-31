@@ -2,6 +2,9 @@
 	<!-- Launch the camera -->
 	<include file="$(find urVision)/launch/rpi_cam.launch"></include>
 
+	<!-- Launch the Tracker -->
+	<include file="$(find urVision)/launch/tracker.launch"></include>
+
 	<!-- Launch urVision node -->
 	<node pkg="urVision" type="urVision" name="urVision" output="screen">
 		<rosparam command="load" file="$(find urVision)/config/common.yaml" />

@@ -1,6 +1,8 @@
-# Common attributes (might be used by urGovernor)
+# Common attributes (used by both urVision and urGovernor)
 
 image_publisher: /image_converter/output_video
 weed_data_publisher: /vision_target/weed_data
 
 weed_threshold_publisher: /vision_target/otsu_threshold
+
+fetch_weed_service: /fetch_weed_service
