@@ -5,7 +5,7 @@ image_topic: /image_raw
 show_img_window: false
 
 # Log framerate every n frames
-frames_log_interval: 10
+frames_log_interval: 20
 
 # Camera frame parameters (ground projection)
 fov_width_cm: 60

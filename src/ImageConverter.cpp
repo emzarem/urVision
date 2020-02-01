@@ -11,6 +11,8 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Header.h>
 
+#include <urGovernor/FetchWeed.h>
+
 const std::string OPENCV_WINDOW = "urVision Window";
 
 // Image Converter class
@@ -29,6 +31,9 @@ class ImageConverter
 	ros::Publisher m_weedDataPublisher;
 	ros::Publisher m_weedThresholdPublisher;
 
+	// Service clients
+	ros::ServiceClient m_fetchWeedClient;
+
 	// For topic names
 	std::string m_cameraName;
 	std::string m_imageTopic;
@@ -36,6 +41,8 @@ class ImageConverter
 	std::string m_imagePublisherName;
 	std::string m_weedDataPublisherName;
 	std::string m_weedThresholdPublisherName;
+
+	std::string fetchWeedServiceName;
 
 	bool m_showWindow;
 	bool m_haveFrame;
@@ -88,6 +95,8 @@ public:
 
 	  	m_weedThresholdPublisher = m_nodeHandle.advertise<std_msgs::Float32>(m_weedThresholdPublisherName, 1);
 
+		m_fetchWeedClient = m_nodeHandle.serviceClient<urGovernor::FetchWeed>(fetchWeedServiceName);
+
 		ROS_INFO("ImageConverter Pipeline started successfully!");
 
 		return true;
@@ -95,6 +104,11 @@ public:
  
 	void processImage(const sensor_msgs::ImageConstPtr& msg)
 	{
+		// For calling back to tracker node show current valid weed.
+    	urGovernor::FetchWeed fetchWeedSrv;
+		fetchWeedSrv.request.caller = 1;
+        fetchWeedSrv.request.do_uproot = false; // Do NOT mark this weed as uprooted (utility only)
+
 		// Update framenumber
 		m_frameNum++;
 		// Get image from cv_bridge
@@ -191,12 +205,32 @@ public:
 		// Publish weed keypoints drawn on original image
 		Mat im_with_keypoints;
 		drawKeypoints(m_detector->greenFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+
+		// Show the current valid weed (next to be harvested) if there is one 
+        if (m_fetchWeedClient.call(fetchWeedSrv))
+        {
+			KeyPoint nextValid;
+			nextValid.pt.x = (float)((fetchWeedSrv.response.weed.x_cm / scaleFactorX) + (m_visionParams.frameSize.width / 2));
+			nextValid.pt.y = (float)((-1.0*fetchWeedSrv.response.weed.y_cm / scaleFactorY) + (m_visionParams.frameSize.height / 2));
+			nextValid.size = (float)((fetchWeedSrv.response.weed.size_cm / sizeScale));
+
+			// Draw red crosshair on next weed to target!
+			cv::drawMarker(im_with_keypoints, cv::Point(nextValid.pt.x, nextValid.pt.y),  
+							cv::Scalar(0, 0, 255), MARKER_CROSS, nextValid.size*2, 5);
+		}
+
+		
+		// Publish the output image with keypoints, bounding boxes, etc.
 		cv_ptr->image = im_with_keypoints;
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
 
+		// Publish the current otsuThreshold
 		std_msgs::Float32 otsuThreshold;
 		otsuThreshold.data = (float)(m_detector->getWeedThreshold() * sizeScale);
 		m_weedThresholdPublisher.publish(otsuThreshold);
+
+		// Done processing this frame
+		return;
 	}
 
 	// General parameters for this node
@@ -210,6 +244,8 @@ public:
 		if (!m_nodeHandle.getParam("show_img_window", m_showWindow)) return false;
 
 		if (!m_nodeHandle.getParam("frames_log_interval", m_frameLogInterval)) return false;
+
+		if (!m_nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
 
 		return true;
 	}
