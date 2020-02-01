@@ -66,7 +66,35 @@ size_t ObjectTracker::object_count()
     return m_active_objects.size();
 }
 
-/* top
+/* topValidAndUproot
+ *      @brief returns the largest Object with other valid parameters (as defined by operator>)
+ *                  and marks it as uprooted
+ *
+ *      @param  to_ret  : The top object is returned through this
+ *      @returns   bool : True if top object exists, false otherwise
+ */
+bool ObjectTracker::topValidAndUproot(Object& to_ret)
+{
+    if (object_count() == 0)
+        return false;
+
+    /* Go through all active objects and check for 'valid' conditions */
+    for (auto itr = m_active_objects.begin(); itr != m_active_objects.end(); itr++)
+    {
+        // If valid framecount and NOT uprooted
+        if (m_framecount[itr->first] >= m_min_framecount && 
+             false == m_uprooted[itr->first])
+        {
+            m_uprooted[itr->first] = true;
+            to_ret = itr->second;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/* topValid
  *      @brief returns the largest Object with other valid parameters (as defined by operator>)
  *
  *      @param  to_ret  : The top object is returned through this
@@ -84,7 +112,6 @@ bool ObjectTracker::topValid(Object& to_ret)
         if (m_framecount[itr->first] >= m_min_framecount && 
              false == m_uprooted[itr->first])
         {
-            m_uprooted[itr->first] = true;
             to_ret = itr->second;
             return true;
         }

@@ -17,7 +17,6 @@ Distance distanceTolerance;
 int maxDisappearedFrms;
 int minValidFrames;
 
-
 static inline Object weed_to_object(urVision::weedData& weed)
 {
     /* all values are floats */
@@ -33,24 +32,37 @@ static void object_to_weed(Object& obj, urVision::weedData& weed)
 }
 
 /* Fetch weed service (called by controller):
- *      Returns
- * 
- * 
+ *      Response includes a valid weed to be uprooted.
+ *      Note that the service request needs to dicate whether this weed will get uprooted.
  */
 bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Response &res)
 {
     Object top_valid_obj;
-    if (p_tracker->topValid(top_valid_obj))
+    bool retValue = false;
+
+    // If this weed should be marked as uprooted (i.e. called by controller)
+    if (req.do_uproot)
     {
-        /* Set response data to include weed fetched from the top */
+        retValue = p_tracker->topValidAndUproot(top_valid_obj);
+    }
+    // Otherwise, get top valid but no uproot
+    else
+    {
+        retValue = p_tracker->topValid(top_valid_obj);
+    }
+
+    // If we successfully got an object
+    if (retValue)
+    {
+        // Set response data to include weed fetched from the top
         object_to_weed(top_valid_obj, res.weed);
-        return true;
     }
     else
     {
         ROS_DEBUG("fetch_weed_service: No current weeds are valid (yet).");
-        return false;
     }
+
+    return retValue;
 }
 
 void new_weed_callback(const urVision::weedDataArray::ConstPtr& msg)
@@ -101,5 +113,6 @@ int main(int argc, char** argv)
     ros::ServiceServer service = nodeHandle.advertiseService(fetchWeedServiceName, fetch_weed);
 
     ros::spin();
+
     delete p_tracker;
 }

@@ -81,6 +81,10 @@ class ObjectTracker {
         // Is it uprooted? How many frames has it been in?
         bool topValid(Object& to_ret);
 
+        // Additional checks:
+        // Is it uprooted? How many frames has it been in?
+        bool topValidAndUproot(Object& to_ret);
+
         // Modifiers
         void update(const std::vector<Object>& new_objs);
 
