@@ -8,8 +8,8 @@ show_img_window: false
 frames_log_interval: 50
 
 # Camera frame parameters (ground projection)
-fov_width_cm: 62
-fov_height_cm: 35
+fov_width_cm: 58
+fov_height_cm: 32
 
 # Any detected objects smaller than this will not be considered
 min_weed_size_cm: 2

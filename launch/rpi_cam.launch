@@ -10,9 +10,8 @@
   <arg name="height" default="720" />                       <!-- Image Height -->
   <arg name="fps" default="10" />                            <!-- Desired framerate. True framerate may not reach this if set too high. -->
 
-  <!-- This guy isn't working for some reason ... -->
   <!-- For Including Camera calibration data (using camera_calibration package) -->
-  <!-- <arg name="cam_cal_data" default="$(find urVision)/config/$(arg cam_name).yaml" /> -->
+  <arg name="cam_cal_data" default="$(find urVision)/config/csi_cam_0.yaml" />
 
   <!-- Make arguments available to parameter server -->
   <param name="$(arg cam_name)/camera_id" type="int" value="$(arg sensor_id)" />
@@ -30,8 +29,7 @@
     <param name="camera_name" value="$(arg cam_name)" />
     <param name="frame_id" value="$(arg frame_id)" />
     <param name="sync_sink" value="$(arg sync_sink)" />
-    <!-- This guy isn't working for some reason ... -->
-    <!-- <param name="camera_info_url" value="$(arg cam_cal_data)" /> -->
+    <param name="camera_info_url" value="file://$(arg cam_cal_data)" />
     <remap from="camera/image_raw" to="$(arg cam_name)/image_raw" />
     <remap from="/set_camera_info" to="$(arg cam_name)/set_camera_info" />
   </node>
