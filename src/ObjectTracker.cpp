@@ -22,7 +22,7 @@ static Distance euclidean_distance(const Object& a, const Object& b)
     Distance delt_x = (Distance)a.x - (Distance)b.x;
     Distance delt_y = (Distance)a.y - (Distance)b.y;
     Distance delt_z = (Distance)a.z - (Distance)b.z;
-    /*TODO: Do we want size to be in comparison? */    
+    /*TODO: Do we want size to be in comparison? */
     // Distance delt_size = (Distance)a.size - (Distance)b.size;
     return sqrt(delt_x*delt_x + delt_y*delt_y + delt_z*delt_z);
 }
@@ -66,6 +66,31 @@ size_t ObjectTracker::object_count()
     return m_active_objects.size();
 }
 
+bool ObjectTracker::markUprooted(ObjectID uprootedId)
+{
+    if (object_count() == 0)
+        return false;
+
+    /* Go through all active objects and check for this objectId conditions */
+    for (auto itr = m_active_objects.begin(); itr != m_active_objects.end(); itr++)
+    {
+        /* If this is the object to mark as uprooted */
+        if (itr->first == uprootedId)
+        {
+            /* Sanity check */
+            if ( m_status[itr->first] == IN_PROGRESS)
+            {
+                m_status[itr->first] = UPROOTED;
+                return true;
+            }
+            
+            return false;
+        }
+    }
+
+    return false;
+}
+
 /* topValidAndUproot
  *      @brief returns the largest Object with other valid parameters (as defined by operator>)
  *                  and marks it as uprooted
@@ -73,7 +98,7 @@ size_t ObjectTracker::object_count()
  *      @param  to_ret  : The top object is returned through this
  *      @returns   bool : True if top object exists, false otherwise
  */
-bool ObjectTracker::topValidAndUproot(Object& to_ret)
+bool ObjectTracker::topValidAndUproot(Object& to_ret, ObjectID& ret_id)
 {
     if (object_count() == 0)
         return false;
@@ -81,12 +106,12 @@ bool ObjectTracker::topValidAndUproot(Object& to_ret)
     /* Go through all active objects and check for 'valid' conditions */
     for (auto itr = m_active_objects.begin(); itr != m_active_objects.end(); itr++)
     {
-        // If valid framecount and NOT uprooted
-        if (m_framecount[itr->first] >= m_min_framecount && 
-             false == m_uprooted[itr->first])
+        // If status is READY
+        if (m_status[itr->first] == READY)
         {
-            m_uprooted[itr->first] = true;
+            m_status[itr->first] = IN_PROGRESS;
             to_ret = itr->second;
+            ret_id = itr->first;
             return true;
         }
     }
@@ -108,9 +133,9 @@ bool ObjectTracker::topValid(Object& to_ret)
     /* Go through all active objects and check for 'valid' conditions */
     for (auto itr = m_active_objects.begin(); itr != m_active_objects.end(); itr++)
     {
-        // If valid framecount and NOT uprooted
-        if (m_framecount[itr->first] >= m_min_framecount && 
-             false == m_uprooted[itr->first])
+        // If status is READY OR in progress (because calls to this function are just to show valid objects)
+        if (m_status[itr->first] == READY || 
+            m_status[itr->first] == IN_PROGRESS)
         {
             to_ret = itr->second;
             return true;
@@ -161,6 +186,7 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
         {
             m_disappeared[itr->first]++;
             m_framecount[itr->first] = 0;
+            m_status[itr->first] = DEFAULT;
         }
     }
 
@@ -248,6 +274,11 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
                     m_active_objects[m_id_list[*itr]] = new_objs[*sub_itr];
                     // Increment the number of consecutive frames this was found in
                     m_framecount[m_id_list[*itr]]++;
+                    // Mark as ready if framecount is appropriate
+                    if (m_status[m_id_list[*itr]] == DEFAULT && m_framecount[m_id_list[*itr]] >= m_min_framecount)
+                    {
+                        m_status[m_id_list[*itr]] = READY;
+                    }
                     found_update = true;
                     break;
                 }
@@ -255,10 +286,13 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
             }
 
             // If not updated its missing this frame
-            if (!found_update)
+            // Only do this if this object is not currently being uprooted
+            // This status needs to be updated by the system accordingly
+            if (!found_update && m_status[m_id_list[*itr]] != IN_PROGRESS)
             {
                 m_disappeared[m_id_list[*itr]]++;
                 m_framecount[m_id_list[*itr]] = 0;
+                m_status[m_id_list[*itr]] = DEFAULT;
             }
         }
 
@@ -290,9 +324,9 @@ ObjectID ObjectTracker::register_object(const Object& obj)
     m_id_list.insert(id_itr, m_next_id);
     
     m_active_objects[m_next_id] = obj;
-    m_uprooted[m_next_id] = false;
     m_disappeared[m_next_id] = 0;
     m_framecount[m_next_id] = 1;
+    m_status[m_next_id] = DEFAULT;
 
     return m_next_id++;
 }
@@ -303,9 +337,9 @@ ObjectID ObjectTracker::register_object(const Object& obj)
 void ObjectTracker::deregister_object(const ObjectID id)
 {
     m_active_objects.erase(id);
-    m_uprooted.erase(id);
     m_disappeared.erase(id);
     m_framecount.erase(id);
+    m_status.erase(id);
     for (auto itr = m_id_list.begin(); itr != m_id_list.end(); itr++)
     {
         if (*itr == id)

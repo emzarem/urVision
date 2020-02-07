@@ -38,28 +38,37 @@ static void object_to_weed(Object& obj, urVision::weedData& weed)
 bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Response &res)
 {
     Object top_valid_obj;
+    ObjectID obj_id = 0;
+
     bool retValue = false;
 
     // If this weed should be marked as uprooted (i.e. called by controller)
     if (req.do_uproot)
     {
-        retValue = p_tracker->topValidAndUproot(top_valid_obj);
+        retValue = p_tracker->topValidAndUproot(top_valid_obj, obj_id);
+
+        // Set response data to include weed fetched from the top
+        object_to_weed(top_valid_obj, res.weed);
+        res.tracking_id = obj_id;
+    }
+    // ELSE IF this is a callback to the tracker to mark an object as uprooted
+    else if (req.mark_uprooted)
+    {
+        retValue = p_tracker->markUprooted(req.uprooted_id);
     }
     // Otherwise, get top valid but no uproot
     else
     {
         retValue = p_tracker->topValid(top_valid_obj);
-    }
 
-    // If we successfully got an object
-    if (retValue)
-    {
         // Set response data to include weed fetched from the top
         object_to_weed(top_valid_obj, res.weed);
     }
-    else
+
+    // If we successfully got an object
+    if (!retValue)
     {
-        ROS_DEBUG("fetch_weed_service: No current weeds are valid (yet).");
+        ROS_DEBUG("fetch_weed_service: Issues with calls to tracker.");
     }
 
     return retValue;

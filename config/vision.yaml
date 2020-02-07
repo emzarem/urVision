@@ -1,5 +1,6 @@
 # For Image converter
 camera_name: /csi_cam_0
+# image_rect_color is rectified camera stream
 image_topic: /image_rect_color
 
 show_img_window: false
@@ -8,8 +9,8 @@ show_img_window: false
 frames_log_interval: 50
 
 # Camera frame parameters (ground projection)
-fov_width_cm: 58
-fov_height_cm: 32
+fov_width_cm: 72
+fov_height_cm: 43
 
 # Any detected objects smaller than this will not be considered
 min_weed_size_cm: 2

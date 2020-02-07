@@ -37,6 +37,15 @@ struct Object {
     }
 };
 
+/* Describes the status of an object (i.e. if it is uprooted, if it is in progress, etc.) */
+enum ObjectStatus
+{
+    DEFAULT = 0,
+    READY = 1,
+    IN_PROGRESS = 2,
+    UPROOTED = 3
+};
+
 inline bool operator==(const Object& lhs, const Object& rhs)
 {
     return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.size == rhs.size;
@@ -77,13 +86,12 @@ class ObjectTracker {
         // Sorted operations
         bool top(Object& to_ret);
 
-        // Additional checks:
-        // Is it uprooted? How many frames has it been in?
         bool topValid(Object& to_ret);
 
-        // Additional checks:
-        // Is it uprooted? How many frames has it been in?
-        bool topValidAndUproot(Object& to_ret);
+        bool topValidAndUproot(Object& to_ret, ObjectID& ret_id);
+
+        // Used to mark an object as uprooted (get object ide from call to topValidAndUproot)
+        bool markUprooted(ObjectID uprootedId);
 
         // Modifiers
         void update(const std::vector<Object>& new_objs);
@@ -111,7 +119,7 @@ class ObjectTracker {
          */
         std::map<ObjectID, uint32_t> m_framecount;
         std::map<ObjectID, uint32_t> m_disappeared;
-        std::map<ObjectID, bool> m_uprooted;
+        std::map<ObjectID, ObjectStatus> m_status;
 
         std::vector<ObjectID> m_id_list;
 };

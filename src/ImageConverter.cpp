@@ -107,7 +107,8 @@ public:
 		// For calling back to tracker node show current valid weed.
     	urGovernor::FetchWeed fetchWeedSrv;
 		fetchWeedSrv.request.caller = 1;
-        fetchWeedSrv.request.do_uproot = false; // Do NOT mark this weed as uprooted (utility only)
+        fetchWeedSrv.request.do_uproot = false; // This is NOT to do an uproot (utility only)
+		fetchWeedSrv.request.mark_uprooted = false; // Do NOT mark as uprooted
 
 		// Update framenumber
 		m_frameNum++;
