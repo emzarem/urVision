@@ -34,7 +34,7 @@ static Distance euclidean_distance(const Object& a, const Object& b)
  *              max number of missed frames before object removed
  */
 ObjectTracker::ObjectTracker(Distance distTol, uint32_t max_dissapeared_frms, uint32_t min_valid_framecount) :
-    m_dist_tol(distTol), m_max_dissapeared_frms(max_dissapeared_frms), m_min_framecount(min_valid_framecount)
+    m_dist_tol(distTol), m_max_dissapeared_frms(max_dissapeared_frms), m_min_framecount(min_valid_framecount), m_globalInProgress(0)
 {}
 
 /* ~ObjectTracker
@@ -80,6 +80,7 @@ bool ObjectTracker::markUprooted(ObjectID uprootedId)
             /* Sanity check */
             if ( m_status[itr->first] == IN_PROGRESS)
             {
+                m_globalInProgress = false;
                 m_status[itr->first] = UPROOTED;
                 return true;
             }
@@ -110,6 +111,7 @@ bool ObjectTracker::topValidAndUproot(Object& to_ret, ObjectID& ret_id)
         if (m_status[itr->first] == READY)
         {
             m_status[itr->first] = IN_PROGRESS;
+            m_globalInProgress = true;
             to_ret = itr->second;
             ret_id = itr->first;
             return true;
@@ -179,6 +181,11 @@ bool ObjectTracker::top(Object& to_ret)
  */
 void ObjectTracker::update(const std::vector<Object>& new_objs)
 {
+    if (m_globalInProgress)
+    {
+        return;
+    }
+
     if (new_objs.size() == 0) 
     {
         // If we didn't get any new objects, all are dissapeared
@@ -286,9 +293,7 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
             }
 
             // If not updated its missing this frame
-            // Only do this if this object is not currently being uprooted
-            // This status needs to be updated by the system accordingly
-            if (!found_update && m_status[m_id_list[*itr]] != IN_PROGRESS)
+            if (!found_update)
             {
                 m_disappeared[m_id_list[*itr]]++;
                 m_framecount[m_id_list[*itr]] = 0;

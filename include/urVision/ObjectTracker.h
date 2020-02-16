@@ -110,6 +110,8 @@ class ObjectTracker {
         /* Min num. of consecutive frames to be considered valid */
         uint32_t m_min_framecount;
 
+        bool m_globalInProgress;
+
         std::map<ObjectID, Object> m_active_objects;
 
         /* Each registered object will have an associated:

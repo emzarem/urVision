@@ -9,17 +9,17 @@ show_img_window: false
 frames_log_interval: 50
 
 # Camera frame parameters (ground projection)
-fov_width_cm: 72
-fov_height_cm: 43
+fov_width_cm: 160
+fov_height_cm: 74
 
 # Any detected objects smaller than this will not be considered
-min_weed_size_cm: 2
+min_weed_size_cm: 1
 # Any detected objects larger than this will not be considered
 max_weed_size_cm: 1000
 
 # default thresholds uses for filtering
-default_weed_size_threshold_cm: 8
-default_crop_size_threshold_cm: 8
+default_weed_size_threshold_cm: 13
+default_crop_size_threshold_cm: 13
 
 ############################
 # Image processing configs #
