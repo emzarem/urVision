@@ -5,6 +5,9 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+// For spatial mapping utilities
+#include "SpatialMapper.cpp"
+
 // Msg types
 #include <urVision/weedDataArray.h>
 #include <urVision/weedData.h>
@@ -52,17 +55,18 @@ class ImageConverter
 
 	PlantDetector* m_detector;
 
+	SpatialMapper* m_spatialMapper;
+
 	VisionParams m_visionParams;
 
-	int fovWidthCm, fovHeightCm, maxWeedSizeCm, minWeedSizeCm, defaultWeedSizeCm, defaultCropSizeCm;
+	int maxWeedSizeCm, minWeedSizeCm, defaultWeedSizeCm, defaultCropSizeCm;
 
-	float scaleFactorX, scaleFactorY, sizeScale;
-
+	// For performance logging
 	ros::WallTime start_, end_;
 
 public:
 	ImageConverter(ros::NodeHandle& nodeHandle)
-	: m_nodeHandle(nodeHandle), m_imageTransport(nodeHandle), m_haveFrame(false), m_frameNum(0)
+	: m_nodeHandle(nodeHandle), m_imageTransport(nodeHandle), m_haveFrame(false), m_frameNum(0), m_spatialMapper(NULL)
 	{
 		if (!readGeneralParameters()) {
 			ROS_ERROR("Could not read general parameters required for ImageConverter.");
@@ -132,20 +136,12 @@ public:
 		{
 			m_visionParams.frameSize = currentFrame.size();
 
-			// These are our scaling operations
-			scaleFactorX = ((float)fovWidthCm) / m_visionParams.frameSize.width;
-			scaleFactorY = ((float)fovHeightCm) / m_visionParams.frameSize.height;
-			sizeScale = (scaleFactorX + scaleFactorY) / 2;
-			
-			ROS_INFO("Image Frame Size is %ix%i [pixels]", 
-				m_visionParams.frameSize.width, m_visionParams.frameSize.height);
-			ROS_INFO("Field of View is %ix%i [cm]", fovWidthCm, fovHeightCm);
-			ROS_INFO("ScaleFactors: (xScale,yScale,sizeScale): (%.4f,%.4f,%.4f)", scaleFactorX, scaleFactorY, sizeScale);
+			m_spatialMapper = new SpatialMapper(m_nodeHandle, m_visionParams.frameSize.width, m_visionParams.frameSize.height);
 
-			m_visionParams.defaultWeedThreshold = ((float)defaultWeedSizeCm ) / sizeScale;
-			m_visionParams.defaultCropThreshold = ((float)defaultCropSizeCm ) / sizeScale;
-			m_visionParams.minWeedSize = ((float)minWeedSizeCm ) / sizeScale;
-			m_visionParams.maxWeedSize = ((float)maxWeedSizeCm ) / sizeScale;
+			m_visionParams.defaultWeedThreshold = ((float)defaultWeedSizeCm ) / m_spatialMapper->scaleSize;
+			m_visionParams.defaultCropThreshold = ((float)defaultCropSizeCm ) / m_spatialMapper->scaleSize;
+			m_visionParams.minWeedSize = ((float)minWeedSizeCm ) / m_spatialMapper->scaleSize;
+			m_visionParams.maxWeedSize = ((float)maxWeedSizeCm ) / m_spatialMapper->scaleSize;
 
 			// Now we have a frame (only had to to this initialization once)
 			m_haveFrame = true;
@@ -184,16 +180,15 @@ public:
 			// Populating weedData list to be published
 			urVision::weedData weed_data;
 
-			// The data in weedList received here had coordinates xE[1, framewidth], yE[1, frameheight]
-			// Need to change this to be centered around 0 for Delta arm operation
-			// e.g. x_cm = (ptx - (framewidth / 2) * scaleFactorX;
-			// e.g. y_cm = (pty - (frameheight / 2) * scaleFactorY;
-			weed_data.x_cm = (float)((it->pt.x - (m_visionParams.frameSize.width / 2))  * scaleFactorX); 
-			weed_data.y_cm = (float)((it->pt.y - (m_visionParams.frameSize.height / 2)) * scaleFactorY)*-1.0; 
-			weed_data.z_cm = (float)0; // Just assume "height" == 0
-			weed_data.size_cm = (float)(it->size * sizeScale);
-			
-			weed_msg.weeds.push_back(weed_data);
+			// Do spatial mapping conversion
+			if (m_spatialMapper->keypointToReferenceFrame(*it, weed_data))
+			{
+				weed_msg.weeds.push_back(weed_data);
+			}
+			else
+			{
+				ROS_ERROR("Spatial Mapping could not be performed on point (in image) (x,y)=(%f,%f)", it->pt.x, it->pt.y);
+			}			
 		}
 
 		// Publish weeddaata
@@ -211,23 +206,27 @@ public:
         if (m_fetchWeedClient.call(fetchWeedSrv))
         {
 			KeyPoint nextValid;
-			nextValid.pt.x = (float)((fetchWeedSrv.response.weed.x_cm / scaleFactorX) + (m_visionParams.frameSize.width / 2));
-			nextValid.pt.y = (float)((-1.0*fetchWeedSrv.response.weed.y_cm / scaleFactorY) + (m_visionParams.frameSize.height / 2));
-			nextValid.size = (float)((fetchWeedSrv.response.weed.size_cm / sizeScale));
-
-			// Draw red crosshair on next weed to target!
-			cv::drawMarker(im_with_keypoints, cv::Point(nextValid.pt.x, nextValid.pt.y),  
-							cv::Scalar(0, 0, 255), MARKER_CROSS, nextValid.size*2, 5);
+			
+			// Do spatial mapping conversion
+			if (m_spatialMapper->referenceFrameToKeypoint(fetchWeedSrv.response.weed, nextValid))
+			{
+				// Draw red crosshair on next weed to target!
+				cv::drawMarker(im_with_keypoints, cv::Point(nextValid.pt.x, nextValid.pt.y),  
+								cv::Scalar(0, 0, 255), MARKER_CROSS, nextValid.size*2, 5);
+			}
+			else
+			{
+				ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", fetchWeedSrv.response.weed.x_cm, fetchWeedSrv.response.weed.y_cm);
+			}
 		}
 
-		
 		// Publish the output image with keypoints, bounding boxes, etc.
 		cv_ptr->image = im_with_keypoints;
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
 
 		// Publish the current otsuThreshold
 		std_msgs::Float32 otsuThreshold;
-		otsuThreshold.data = (float)(m_detector->getWeedThreshold() * sizeScale);
+		otsuThreshold.data = (float)(m_detector->getWeedThreshold() * m_spatialMapper->scaleSize);
 		m_weedThresholdPublisher.publish(otsuThreshold);
 
 		// Done processing this frame
@@ -255,8 +254,6 @@ public:
 	bool readVisionParameters()
 	{
 		// Read vision parameters
-		if (!m_nodeHandle.getParam("fov_width_cm", fovWidthCm)) return false;
-		if (!m_nodeHandle.getParam("fov_height_cm", fovHeightCm)) return false;
 		if (!m_nodeHandle.getParam("min_weed_size_cm", minWeedSizeCm)) return false;
 		if (!m_nodeHandle.getParam("max_weed_size_cm", maxWeedSizeCm)) return false;
 		if (!m_nodeHandle.getParam("default_weed_size_threshold_cm", defaultWeedSizeCm)) return false;
