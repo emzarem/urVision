@@ -2,12 +2,15 @@
 camera_name: /test_image
 image_topic: /image_raw
 
+camera_cal_file: opencv_camera_properties.yaml
+
 show_img_window: false
 
 # Log framerate every n frames
 frames_log_interval: 20
 
 # Camera frame parameters (ground projection)
+fov_camera_distance_cm: 55
 fov_width_cm: 60
 fov_height_cm: 45
 

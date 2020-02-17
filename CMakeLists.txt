@@ -80,6 +80,7 @@ add_executable(${PROJECT_NAME}
   src/${PROJECT_NAME}_node.cpp
   src/PlantDetector.cpp
   src/PlantFilter.cpp
+  src/SpatialMapper.cpp
 )
 
 ## Declare cpp executables

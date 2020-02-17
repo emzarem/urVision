@@ -6,7 +6,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 // For spatial mapping utilities
-#include "SpatialMapper.cpp"
+#include "SpatialMapper.h"
 
 // Msg types
 #include <urVision/weedDataArray.h>
