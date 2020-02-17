@@ -22,17 +22,12 @@ SpatialMapper::SpatialMapper(ros::NodeHandle& nodeHandle, int frameWidth, int fr
     // ROS_INFO("\tField of View is %ix%i [cm]", fovWidthCm, fovHeightCm);
     ROS_INFO("\tScaleFactors (approx.): (xScale,yScale,sizeScale): (%.4f,%.4f,%.4f)", scaleX, scaleY, scaleSize);
     
-    // OpenCV 3D Mapping
-    rvec = Mat::zeros(3, 1, cv::DataType<double>::type);
-    tvec = Mat::zeros(3, 1, cv::DataType<double>::type);
-    
-    rotationMatrix = Mat::ones(3, 3, cv::DataType<double>::type);
-
     // // TODO: Need some info here 
     // // We need to provide a worldPlane and an imagePlane (points need to coincide)
     // cv::solvePnP(worldPlane, imagePlane, cameraMatrix, distCoeffs, rvec, tvec);
     
     // Convert rotation vector to rotationMatrix
+    rotationMatrix = Mat::ones(3, 3, cv::DataType<double>::type);
     cv::Rodrigues(rvec,rotationMatrix);
 
     // Stuff we need for our inverse projection calculations
@@ -151,9 +146,12 @@ bool SpatialMapper::readMappingParameters()
         }
         else
         {
-            // Get distortion coefficients and camera matrix
+            // Get distortion coefficients, camera matrix,
+            // rotation vector, and translation vector
             configFile["distCoeffs"] >> distCoeffs;
             configFile["cameraMatrix"] >> cameraMatrix;
+            configFile["rvec"] >> rvec;
+            configFile["tvec"] >> tvec;
 
             configFile.release();
         }
