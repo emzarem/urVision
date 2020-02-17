@@ -18,6 +18,8 @@
   <param name="$(arg cam_name)/image_width" type="int" value="$(arg width)" />
   <param name="$(arg cam_name)/image_height" type="int" value="$(arg height)" />
   <param name="$(arg cam_name)/target_fps" type="int" value="$(arg fps)" />
+  <!-- Common name for tracker to use -->
+  <param name="target_fps" type="int" value="$(arg fps)" />
 
   <!-- Define the GSCAM pipeline -->
   <env name="GSCAM_CONFIG" value="nvarguscamerasrc ! video/x-raw(memory:NVMM),

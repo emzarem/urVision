@@ -14,8 +14,10 @@ static ObjectTracker* p_tracker;
 std::string weedPublisherName;
 std::string fetchWeedServiceName;
 Distance distanceTolerance;
-int maxDisappearedFrms;
-int minValidFrames;
+float maxTimeDisappeared;
+int minTimeValid;
+
+float targetFps;
 
 static inline Object weed_to_object(urVision::weedData& weed)
 {
@@ -95,10 +97,12 @@ bool readGeneralParameters(ros::NodeHandle nodeHandle)
     if (!nodeHandle.getParam("weed_data_publisher", weedPublisherName)) return false;
     if (!nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
 
-    if (!nodeHandle.getParam("max_disappeared_frames", maxDisappearedFrms)) return false;
-    if (!nodeHandle.getParam("min_valid_frames", minValidFrames)) return false;
-    if (!nodeHandle.getParam("distance_tolerance", distanceTolerance)) return false;
+    if (!nodeHandle.getParam("max_time_disappeared", maxTimeDisappeared)) return false;
+    if (!nodeHandle.getParam("min_time_valid", minTimeValid)) return false;
+    if (!nodeHandle.getParam("/target_fps", targetFps)) return false;
 
+    if (!nodeHandle.getParam("distance_tolerance", distanceTolerance)) return false;
+    
     return true;
 }
 
@@ -113,6 +117,10 @@ int main(int argc, char** argv)
         ros::requestShutdown();
     }
 
+    // Set minValidFrames and maxTimeDisappeared based on frame rate
+    int maxDisappearedFrms = (int)(floor((1.0*targetFps) * maxTimeDisappeared));
+    int minValidFrames = (int)(ceil((1.0*targetFps) * minTimeValid));
+    ROS_INFO("Tracker -- maxDisappearedFrms == %i; minValidFrames == %i", maxDisappearedFrms, minValidFrames);
     p_tracker = new ObjectTracker(distanceTolerance, maxDisappearedFrms, minValidFrames);
 
     // Subscriber to the weed publisher (from urVision)

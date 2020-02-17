@@ -1,8 +1,7 @@
-# Max allowable disappeared frames
-max_disappeared_frames: 2
-
-# Min frames to identify the same weed in to be valid
-min_valid_frames: 30
+# Max allowable time disappeared before removing object (seconds)
+max_time_disappeared: 0.40
+# Min time to identify the same weed to be valid (seconds)
+min_time_valid: 3.0
 
 # Distance tolerance for tracking between frames (in cm)
 distance_tolerance: 3
