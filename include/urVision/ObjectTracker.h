@@ -54,7 +54,7 @@ inline bool operator==(const Object& lhs, const Object& rhs)
 inline bool operator>(const Object& lhs, const Object& rhs)
 {
     // Currently using size value as a basis for sorting
-    return lhs.size > rhs.size;
+    return lhs.y > rhs.y;
 }
 
 

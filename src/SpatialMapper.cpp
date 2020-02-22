@@ -67,15 +67,16 @@ bool SpatialMapper::keypointToReferenceFrame(const KeyPoint& keypoint, urVision:
     leftSideMat  = rotationMatrixInv * cameraMatrixInv * uvPoint;
 
     // Some more fancy math where fovCameraHeight is our know distance from Camera to ground projection ...
-    double s = fovCameraHeight + rightSideMat.at<double>(2,0);
+    double s = ((float)fovCameraHeight) + rightSideMat.at<double>(2,0);
     s /= leftSideMat.at<double>(2,0);
 
     // Get our REAL WORLD coordinates!
-    cv::Mat wcPoint = rotationMatrixInv * (s * cameraMatrixInv * uvPoint - tvec);
+    Mat wcPoint = rotationMatrixInv * (s * cameraMatrixInv * uvPoint - tvec);
 
     // The coordinates to return
-    retData.x_cm = wcPoint.at<double>(0, 0);
-    retData.y_cm = wcPoint.at<double>(1, 0);
+    // **NOTE**: x is y, y is x
+    retData.x_cm = wcPoint.at<double>(1, 0) / 10; // convert to cm
+    retData.y_cm = wcPoint.at<double>(0, 0) / 10; // convert to cm
     retData.z_cm = (float)0;
     retData.size_cm = (float)(keypoint.size * scaleSize); 
 
@@ -91,7 +92,9 @@ bool SpatialMapper::referenceFrameToKeypoint(const urVision::weedData& weedData,
     // retData.size = (float)((weedData.size_cm / scaleSize));
 
     // Set up the location of the 
-    Point3f realPoint(weedData.x_cm, weedData.y_cm, fovCameraHeight); // point in world coordinates
+    // Convert points to mm (cm*10)
+    // **NOTE**: x is y, y is x
+    Point3f realPoint(weedData.y_cm * 10.0, weedData.x_cm * 10.0, fovCameraHeight); // point in world coordinates
     std::vector<Point3f> objectPoints;
     objectPoints.push_back(realPoint);
     std::vector<Point2f> projectedPoints;
@@ -121,7 +124,9 @@ bool SpatialMapper::readMappingParameters()
     if (!m_nodeHandle.getParam("fov_width_cm", fovWidthCm)) return false;
     if (!m_nodeHandle.getParam("fov_height_cm", fovHeightCm)) return false;
 
-    if (!m_nodeHandle.getParam("fov_camera_distance_cm", fovCameraHeight)) return false;
+    int fovCameraHeightCm = 0;
+    if (!m_nodeHandle.getParam("fov_camera_distance_cm", fovCameraHeightCm)) return false;
+    fovCameraHeight = fovCameraHeightCm*10;
     
     std::string cameraCalFile;
     if (!m_nodeHandle.getParam("camera_cal_file", cameraCalFile)) 
