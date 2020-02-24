@@ -136,10 +136,10 @@ public:
 
 			m_spatialMapper = new SpatialMapper(m_nodeHandle, m_visionParams.frameSize.width, m_visionParams.frameSize.height);
 
-			m_visionParams.defaultWeedThreshold = ((float)defaultWeedSizeCm ) / m_spatialMapper->scaleSize;
-			m_visionParams.defaultCropThreshold = ((float)defaultCropSizeCm ) / m_spatialMapper->scaleSize;
-			m_visionParams.minWeedSize = ((float)minWeedSizeCm ) / m_spatialMapper->scaleSize;
-			m_visionParams.maxWeedSize = ((float)maxWeedSizeCm ) / m_spatialMapper->scaleSize;
+			m_visionParams.defaultWeedThreshold = ((float)defaultWeedSizeCm ) / m_spatialMapper->sizeScale;
+			m_visionParams.defaultCropThreshold = ((float)defaultCropSizeCm ) / m_spatialMapper->sizeScale;
+			m_visionParams.minWeedSize = ((float)minWeedSizeCm ) / m_spatialMapper->sizeScale;
+			m_visionParams.maxWeedSize = ((float)maxWeedSizeCm ) / m_spatialMapper->sizeScale;
 
 			// Now we have a frame (only had to to this initialization once)
 			m_haveFrame = true;
@@ -224,7 +224,7 @@ public:
 
 		// Publish the current otsuThreshold
 		std_msgs::Float32 otsuThreshold;
-		otsuThreshold.data = (float)(m_detector->getWeedThreshold() * m_spatialMapper->scaleSize);
+		otsuThreshold.data = (float)(m_detector->getWeedThreshold() * m_spatialMapper->sizeScale);
 		m_weedThresholdPublisher.publish(otsuThreshold);
 
 		// Done processing this frame

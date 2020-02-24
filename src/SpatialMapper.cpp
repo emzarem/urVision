@@ -12,15 +12,17 @@ SpatialMapper::SpatialMapper(ros::NodeHandle& nodeHandle, int frameWidth, int fr
     }
 
     // These are our scaling operations
-    scaleX = ((float)fovWidthCm) / m_frameWidth;
-    scaleY = ((float)fovHeightCm) / m_frameHeight;
-    scaleSize = (scaleX + scaleY) / 2; // average
+    float scaleX = ((float)fovWidthCm) / m_frameWidth;
+    float scaleY = ((float)fovHeightCm) / m_frameHeight;
+    // Set main size scale to be used
+    sizeScale = scaleY;
+    // sizeScale = (scaleX + scaleY) / 2; // average
 
     ROS_INFO("Spatial Mapping:");
     ROS_INFO("\tImage Frame Size is %ix%i [pixels]", 
         m_frameWidth, m_frameHeight);
     // ROS_INFO("\tField of View is %ix%i [cm]", fovWidthCm, fovHeightCm);
-    ROS_INFO("\tScaleFactors (approx.): (xScale,yScale,sizeScale): (%.4f,%.4f,%.4f)", scaleX, scaleY, scaleSize);
+    ROS_INFO("\tScaleFactor (approx.): : %.1f", 1/sizeScale);
     
     // // TODO: Need some info here 
     // // We need to provide a worldPlane and an imagePlane (points need to coincide)
@@ -50,14 +52,6 @@ SpatialMapper::SpatialMapper(ros::NodeHandle& nodeHandle, int frameWidth, int fr
 //          from the distorted image.
 bool SpatialMapper::keypointToReferenceFrame(const KeyPoint& keypoint, urVision::weedData& retData)
 {
-    // // Need to change this to be centered around 0 for Delta arm operation
-    // // e.g. x_cm = (ptx - (framewidth / 2) * scaleFactorX;
-    // // e.g. y_cm = (pty - (frameheight / 2) * scaleFactorY;
-    // retData.x_cm = (float)((keypoint.pt.x - (m_frameWidth / 2))  * scaleX); 
-    // retData.y_cm = (float)((keypoint.pt.y - (m_frameHeight / 2)) * scaleY)*-1.0; 
-    // retData.z_cm = (float)0; // Just assume "height" == 0
-    // retData.size_cm = (float)(keypoint.size * scaleSize);
-
     // This is where the keypoint is in the image (u,v,1)
     uvPoint.at<double>(0,0) = keypoint.pt.x;
     uvPoint.at<double>(1,0) = keypoint.pt.y; 
@@ -78,7 +72,7 @@ bool SpatialMapper::keypointToReferenceFrame(const KeyPoint& keypoint, urVision:
     retData.x_cm = wcPoint.at<double>(1, 0) / 10; // convert to cm
     retData.y_cm = wcPoint.at<double>(0, 0) / 10; // convert to cm
     retData.z_cm = (float)0;
-    retData.size_cm = (float)(keypoint.size * scaleSize); 
+    retData.size_cm = (float)(keypoint.size * sizeScale); 
 
     return true;
 }
@@ -87,10 +81,6 @@ bool SpatialMapper::keypointToReferenceFrame(const KeyPoint& keypoint, urVision:
 //      Conversion should be exact opposite of function above
 bool SpatialMapper::referenceFrameToKeypoint(const urVision::weedData& weedData, KeyPoint& retData)
 {
-    // retData.pt.x = (float)((weedData.x_cm / scaleX) + (m_frameWidth / 2));
-    // retData.pt.y = (float)((-1.0*weedData.y_cm / scaleY) + (m_frameHeight / 2));
-    // retData.size = (float)((weedData.size_cm / scaleSize));
-
     // Set up the location of the 
     // Convert points to mm (cm*10)
     // **NOTE**: x is y, y is x
@@ -107,7 +97,7 @@ bool SpatialMapper::referenceFrameToKeypoint(const urVision::weedData& weedData,
     {
         retData.pt.x = projectedPoints[0].x;
         retData.pt.y = projectedPoints[0].y;
-        retData.size = (float)((weedData.size_cm / scaleSize));
+        retData.size = (float)((weedData.size_cm / sizeScale));
     }
     else
     {

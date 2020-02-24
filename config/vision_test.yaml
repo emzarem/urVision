@@ -11,8 +11,8 @@ frames_log_interval: 20
 
 # Camera frame parameters (ground projection)
 fov_camera_distance_cm: 55
-fov_width_cm: 60
-fov_height_cm: 45
+fov_width_cm: 110
+fov_height_cm: 61
 
 # Any detected objects smaller than this will not be considered
 min_weed_size_cm: 1

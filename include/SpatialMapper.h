@@ -27,7 +27,7 @@ private:
     Mat leftSideMat, rightSideMat, uvPoint;
 
 public:
-    float scaleX, scaleY, scaleSize;
+    float sizeScale;
 
 public:
     SpatialMapper(ros::NodeHandle& nodeHandle, int frameWidth, int frameHeight);
