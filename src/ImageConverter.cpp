@@ -35,7 +35,7 @@ class ImageConverter
 	ros::Publisher m_weedThresholdPublisher;
 
 	// Service clients
-	ros::ServiceClient m_fetchWeedClient;
+	ros::ServiceClient m_queryWeedClient;
 
 	// For topic names
 	std::string m_cameraName;
@@ -45,7 +45,7 @@ class ImageConverter
 	std::string m_weedDataPublisherName;
 	std::string m_weedThresholdPublisherName;
 
-	std::string fetchWeedServiceName;
+	std::string queryWeedServiceName;
 
 	bool m_showWindow;
 	bool m_haveFrame;
@@ -99,7 +99,7 @@ public:
 
 	  	m_weedThresholdPublisher = m_nodeHandle.advertise<std_msgs::Float32>(m_weedThresholdPublisherName, 1);
 
-		m_fetchWeedClient = m_nodeHandle.serviceClient<urGovernor::FetchWeed>(fetchWeedServiceName);
+		m_queryWeedClient = m_nodeHandle.serviceClient<urGovernor::FetchWeed>(queryWeedServiceName);
 
 		ROS_INFO("ImageConverter Pipeline started successfully!");
 
@@ -109,10 +109,8 @@ public:
 	void processImage(const sensor_msgs::ImageConstPtr& msg)
 	{
 		// For calling back to tracker node show current valid weed.
-    	urGovernor::FetchWeed fetchWeedSrv;
-		fetchWeedSrv.request.caller = 1;
-        fetchWeedSrv.request.do_uproot = false; // This is NOT to do an uproot (utility only)
-		fetchWeedSrv.request.mark_uprooted = false; // Do NOT mark as uprooted
+    	urGovernor::FetchWeed queryWeedSrv;
+		queryWeedSrv.request.caller = 1; // we don't need this
 
 		// Update framenumber
 		m_frameNum++;
@@ -203,12 +201,12 @@ public:
 		drawKeypoints(m_detector->greenFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
 		// Show the current valid weed (next to be harvested) if there is one 
-        if (m_fetchWeedClient.call(fetchWeedSrv))
+        if (m_queryWeedClient.call(queryWeedSrv))
         {
 			KeyPoint nextValid;
 			
 			// Do spatial mapping conversion
-			if (m_spatialMapper->referenceFrameToKeypoint(fetchWeedSrv.response.weed, nextValid))
+			if (m_spatialMapper->referenceFrameToKeypoint(queryWeedSrv.response.weed, nextValid))
 			{
 				// Draw red crosshair on next weed to target!
 				cv::drawMarker(im_with_keypoints, cv::Point(nextValid.pt.x, nextValid.pt.y),  
@@ -216,7 +214,7 @@ public:
 			}
 			else
 			{
-				ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", fetchWeedSrv.response.weed.x_cm, fetchWeedSrv.response.weed.y_cm);
+				ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", queryWeedSrv.response.weed.x_cm, queryWeedSrv.response.weed.y_cm);
 			}
 		}
 
@@ -245,7 +243,7 @@ public:
 
 		if (!m_nodeHandle.getParam("frames_log_interval", m_frameLogInterval)) return false;
 
-		if (!m_nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
+		if (!m_nodeHandle.getParam("query_weed_service", queryWeedServiceName)) return false;
 
 		return true;
 	}

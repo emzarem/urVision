@@ -5,4 +5,11 @@ weed_data_publisher: /vision_target/weed_data
 
 weed_threshold_publisher: /vision_target/otsu_threshold
 
+# Fetches the top valid weed to be processed (from tracker)
 fetch_weed_service: /fetch_weed_service
+
+# Marks a weed as uprooted (by governor)
+mark_uprooted_service: /mark_uprooted_service
+
+# Queries the top valid weed (does not mark as being processed)
+query_weed_service: /query_weed_service
