@@ -114,15 +114,15 @@ bool ObjectTracker::topValidAndUproot(Object& to_ret, ObjectID& ret_id)
         return false;
 
     /* Go through all active objects and check for 'valid' conditions */
-    for (auto itr = m_active_objects.begin(); itr != m_active_objects.end(); itr++)
+    for (auto itr = m_id_list.begin(); itr != m_id_list.end(); itr++)
     {
         // If status is READY
-        if (m_status[itr->first] == READY)
+        if (m_status[*itr] == READY)
         {
-            m_status[itr->first] = IN_PROGRESS;
+            m_status[*itr] = IN_PROGRESS;
             m_globalInProgress = true;
-            to_ret = itr->second;
-            ret_id = itr->first;
+            to_ret = m_active_objects[*itr];
+            ret_id = *itr;
             return true;
         }
     }
@@ -141,14 +141,14 @@ bool ObjectTracker::topValid(Object& to_ret)
     if (object_count() == 0)
         return false;
 
-    /* Go through all active objects and check for 'valid' conditions */
-    for (auto itr = m_active_objects.begin(); itr != m_active_objects.end(); itr++)
+    /* Go through all active objects (sorted in m_id_list) and check for 'valid' conditions */
+    for (auto itr = m_id_list.begin(); itr != m_id_list.end(); itr++)
     {
         // If status is READY OR in progress (because calls to this function are just to show valid objects)
-        if (m_status[itr->first] == READY || 
-            m_status[itr->first] == IN_PROGRESS)
+        if (m_status[*itr] == READY || 
+            m_status[*itr] == IN_PROGRESS)
         {
-            to_ret = itr->second;
+            to_ret = m_active_objects[*itr];
             return true;
         }
     }
@@ -334,7 +334,9 @@ ObjectID ObjectTracker::register_object(const Object& obj)
 {
     // Insertion sort on IDs
     auto id_itr = m_id_list.begin();
-    while (id_itr != m_id_list.end() && m_active_objects[*id_itr] > obj) {id_itr++;}
+    
+    // This effectively does the sorting based on y-value
+    while (id_itr != m_id_list.end() && m_active_objects[*id_itr].y < obj.y) {id_itr++;}
     m_id_list.insert(id_itr, m_next_id);
     
     m_active_objects[m_next_id] = obj;

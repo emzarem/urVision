@@ -8,8 +8,10 @@
 #include <urVision/weedDataArray.h>
 
 #include <vector>
+#include <mutex>
 
 static ObjectTracker* p_tracker;
+std::mutex tracker_mtx;
 
 // Parameters to read from configs
 std::string weedPublisherName;
@@ -47,8 +49,11 @@ bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
 {
     Object top_valid_obj;
     ObjectID obj_id = 0;
-
-    bool retValue = p_tracker->topValidAndUproot(top_valid_obj, obj_id);
+    bool retValue = false;
+    
+    tracker_mtx.lock();
+    retValue = p_tracker->topValidAndUproot(top_valid_obj, obj_id);
+    tracker_mtx.unlock();
 
     if (retValue)
     {
@@ -69,7 +74,9 @@ bool query_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
 {
     Object top_valid_obj;
 
+    tracker_mtx.lock();
     bool retValue = p_tracker->topValid(top_valid_obj);
+    tracker_mtx.unlock();
 
     if (retValue)
     {
@@ -87,7 +94,9 @@ bool query_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
 // mark_uprooted_service
 bool mark_uprooted(urGovernor::MarkUprooted::Request &req, urGovernor::MarkUprooted::Response &res)
 {
+    tracker_mtx.lock();
     bool retValue = p_tracker->markUprooted(req.tracking_id, req.success);
+    tracker_mtx.unlock();
 
     if (!retValue)
     {
@@ -110,7 +119,9 @@ void new_weed_callback(const urVision::weedDataArray::ConstPtr& msg)
         new_objs.push_back(weed_to_object(weed));
     }
 
+    tracker_mtx.lock();
     p_tracker->update(new_objs);
+    tracker_mtx.unlock();
 }
 
 // General parameters for this node
@@ -146,7 +157,9 @@ int main(int argc, char** argv)
     int maxDisappearedFrms = (int)(floor((1.0*targetFps) * maxTimeDisappeared));
     int minValidFrames = (int)(ceil((1.0*targetFps) * minTimeValid));
     ROS_INFO("Tracker -- maxDisappearedFrms == %i; minValidFrames == %i", maxDisappearedFrms, minValidFrames);
+    tracker_mtx.lock();
     p_tracker = new ObjectTracker(distanceTolerance, maxDisappearedFrms, minValidFrames);
+    tracker_mtx.unlock();
 
     // Subscriber to the weed publisher (from urVision)
     ros::Subscriber sub = nodeHandle.subscribe(weedPublisherName, 1000, new_weed_callback);
@@ -158,5 +171,7 @@ int main(int argc, char** argv)
 
     ros::spin();
 
+    tracker_mtx.lock();
     delete p_tracker;
+    tracker_mtx.unlock();
 }

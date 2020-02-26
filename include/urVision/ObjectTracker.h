@@ -46,18 +46,6 @@ enum ObjectStatus
     UPROOTED = 3
 };
 
-inline bool operator==(const Object& lhs, const Object& rhs)
-{
-    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.size == rhs.size;
-}
-
-inline bool operator>(const Object& lhs, const Object& rhs)
-{
-    // Currently using size value as a basis for sorting
-    return lhs.y < rhs.y;
-}
-
-
 /* ObjectID
  *      @brief Object ID type used to track
  */
