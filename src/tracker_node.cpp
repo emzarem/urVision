@@ -87,7 +87,7 @@ bool query_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
 // mark_uprooted_service
 bool mark_uprooted(urGovernor::MarkUprooted::Request &req, urGovernor::MarkUprooted::Response &res)
 {
-    bool retValue = p_tracker->markUprooted(req.tracking_id);
+    bool retValue = p_tracker->markUprooted(req.tracking_id, req.success);
 
     if (!retValue)
     {

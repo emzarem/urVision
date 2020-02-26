@@ -54,7 +54,7 @@ inline bool operator==(const Object& lhs, const Object& rhs)
 inline bool operator>(const Object& lhs, const Object& rhs)
 {
     // Currently using size value as a basis for sorting
-    return lhs.y > rhs.y;
+    return lhs.y < rhs.y;
 }
 
 
@@ -91,7 +91,7 @@ class ObjectTracker {
         bool topValidAndUproot(Object& to_ret, ObjectID& ret_id);
 
         // Used to mark an object as uprooted (get object ide from call to topValidAndUproot)
-        bool markUprooted(ObjectID uprootedId);
+        bool markUprooted(ObjectID uprootedId, bool success);
 
         // Modifiers
         void update(const std::vector<Object>& new_objs);

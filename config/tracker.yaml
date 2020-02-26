@@ -1,5 +1,5 @@
 # Max allowable time disappeared before removing object (seconds)
-max_time_disappeared: 0.40
+max_time_disappeared: 0.30
 # Min time to identify the same weed to be valid (seconds)
 min_time_valid: 3.0
 

@@ -66,7 +66,7 @@ size_t ObjectTracker::object_count()
     return m_active_objects.size();
 }
 
-bool ObjectTracker::markUprooted(ObjectID uprootedId)
+bool ObjectTracker::markUprooted(ObjectID uprootedId, bool success)
 {
     if (object_count() == 0)
         return false;
@@ -81,7 +81,16 @@ bool ObjectTracker::markUprooted(ObjectID uprootedId)
             if ( m_status[itr->first] == IN_PROGRESS)
             {
                 m_globalInProgress = false;
-                m_status[itr->first] = UPROOTED;
+                // If calling with success
+                if (success)
+                {
+                    m_status[itr->first] = UPROOTED;
+                }
+                // If not successful
+                else
+                {
+                    m_status[itr->first] = READY;
+                }
                 return true;
             }
             
@@ -285,6 +294,8 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
                     if (m_status[m_id_list[*itr]] == DEFAULT && m_framecount[m_id_list[*itr]] >= m_min_framecount)
                     {
                         m_status[m_id_list[*itr]] = READY;
+                        Object obj = m_active_objects[m_id_list[*itr]];
+                        ROS_INFO("READY @ (x,y,z,size) = (%.2f,%.2f,%.2f,%.2f)", obj.x, obj.y, obj.z, obj.size);
                     }
                     found_update = true;
                     break;
@@ -321,8 +332,6 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
  */
 ObjectID ObjectTracker::register_object(const Object& obj)
 {
-    ROS_INFO("Tracking (x,y,z,size) = (%.2f,%.2f,%.2f,%.2f)", obj.x, obj.y, obj.z, obj.size);
-
     // Insertion sort on IDs
     auto id_itr = m_id_list.begin();
     while (id_itr != m_id_list.end() && m_active_objects[*id_itr] > obj) {id_itr++;}
