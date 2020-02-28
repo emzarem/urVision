@@ -43,7 +43,7 @@ enum ObjectStatus
     DEFAULT = 0,
     READY = 1,
     IN_PROGRESS = 2,
-    UPROOTED = 3
+    COMPLETED = 3
 };
 
 /* ObjectID
@@ -97,8 +97,6 @@ class ObjectTracker {
         uint32_t m_max_dissapeared_frms;
         /* Min num. of consecutive frames to be considered valid */
         uint32_t m_min_framecount;
-
-        bool m_globalInProgress;
 
         std::map<ObjectID, Object> m_active_objects;
 

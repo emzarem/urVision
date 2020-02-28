@@ -34,7 +34,7 @@ static Distance euclidean_distance(const Object& a, const Object& b)
  *              max number of missed frames before object removed
  */
 ObjectTracker::ObjectTracker(Distance distTol, uint32_t max_dissapeared_frms, uint32_t min_valid_framecount) :
-    m_dist_tol(distTol), m_max_dissapeared_frms(max_dissapeared_frms), m_min_framecount(min_valid_framecount), m_globalInProgress(0)
+    m_dist_tol(distTol), m_max_dissapeared_frms(max_dissapeared_frms), m_min_framecount(min_valid_framecount)
 {}
 
 /* ~ObjectTracker
@@ -72,24 +72,23 @@ bool ObjectTracker::markUprooted(ObjectID uprootedId, bool success)
         return false;
 
     /* Go through all active objects and check for this objectId conditions */
-    for (auto itr = m_active_objects.begin(); itr != m_active_objects.end(); itr++)
+    for (auto itr = m_id_list.begin(); itr != m_id_list.end(); itr++)
     {
         /* If this is the object to mark as uprooted */
-        if (itr->first == uprootedId)
+        if (*itr == uprootedId)
         {
             /* Sanity check */
-            if ( m_status[itr->first] == IN_PROGRESS)
+            if ( m_status[*itr] == IN_PROGRESS)
             {
-                m_globalInProgress = false;
                 // If calling with success
                 if (success)
                 {
-                    m_status[itr->first] = UPROOTED;
+                    m_status[*itr] = COMPLETED;
                 }
                 // If not successful
                 else
                 {
-                    m_status[itr->first] = READY;
+                    m_status[*itr] = READY;
                 }
                 return true;
             }
@@ -116,11 +115,11 @@ bool ObjectTracker::topValidAndUproot(Object& to_ret, ObjectID& ret_id)
     /* Go through all active objects and check for 'valid' conditions */
     for (auto itr = m_id_list.begin(); itr != m_id_list.end(); itr++)
     {
-        // If status is READY
-        if (m_status[*itr] == READY)
+        // IF status is READY or IN_PROGRESS
+        if (m_status[*itr] == READY || m_status[*itr] == IN_PROGRESS)
         {
+            // Set status to be IN_PROGRESS
             m_status[*itr] = IN_PROGRESS;
-            m_globalInProgress = true;
             to_ret = m_active_objects[*itr];
             ret_id = *itr;
             return true;
@@ -190,11 +189,6 @@ bool ObjectTracker::top(Object& to_ret)
  */
 void ObjectTracker::update(const std::vector<Object>& new_objs)
 {
-    if (m_globalInProgress)
-    {
-        return;
-    }
-
     if (new_objs.size() == 0) 
     {
         // If we didn't get any new objects, all are dissapeared
@@ -308,7 +302,6 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
             {
                 m_disappeared[m_id_list[*itr]]++;
                 m_framecount[m_id_list[*itr]] = 0;
-                m_status[m_id_list[*itr]] = DEFAULT;
             }
         }
 
