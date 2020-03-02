@@ -75,6 +75,8 @@ class ObjectTracker {
         bool top(Object& to_ret);
 
         bool topValid(Object& to_ret);
+        
+        bool getObjectByID(Object& to_ret, ObjectID objectID);
 
         bool topValidAndUproot(Object& to_ret, ObjectID& ret_id);
 

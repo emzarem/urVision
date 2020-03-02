@@ -78,7 +78,7 @@ bool ObjectTracker::markUprooted(ObjectID uprootedId, bool success)
         if (*itr == uprootedId)
         {
             /* Sanity check */
-            if ( m_status[*itr] == IN_PROGRESS)
+            // if ( m_status[*itr] == IN_PROGRESS)
             {
                 // If calling with success
                 if (success)
@@ -127,6 +127,25 @@ bool ObjectTracker::topValidAndUproot(Object& to_ret, ObjectID& ret_id)
     }
 
     return false;
+}
+
+// Gets an object by it's specific ID
+bool ObjectTracker::getObjectByID(Object& to_ret, ObjectID objectID)
+{
+    if (object_count() == 0)
+        return false;
+
+    auto itr =  m_active_objects.find(objectID);
+
+    if (itr == m_active_objects.end()) 
+    {
+        return false;
+    } 
+    else 
+    {
+        to_ret = itr->second;
+        return true;
+    }
 }
 
 /* topValid

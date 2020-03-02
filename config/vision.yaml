@@ -16,7 +16,7 @@ fov_width_cm: 110
 fov_height_cm: 61
 
 # Any detected objects smaller than this will not be considered
-min_weed_size_cm: 1
+min_weed_size_cm: 2
 # Any detected objects larger than this will not be considered
 max_weed_size_cm: 1000
 
@@ -30,7 +30,7 @@ default_crop_size_threshold_cm: 13
 blur_kernel_size: 15
 
 # Color thresholding
-low_hue: 30
+low_hue: 40
 low_sat: 60
 low_value: 50
 high_hue: 90

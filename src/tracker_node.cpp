@@ -51,9 +51,19 @@ bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
     ObjectID obj_id = 0;
     bool retValue = false;
     
-    tracker_mtx.lock();
-    retValue = p_tracker->topValidAndUproot(top_valid_obj, obj_id);
-    tracker_mtx.unlock();
+    if (req.request_id >= 0)
+    {
+        tracker_mtx.lock();
+        retValue = p_tracker->getObjectByID(top_valid_obj, req.request_id);
+        tracker_mtx.unlock();   
+        obj_id = req.request_id;
+    }
+    else
+    {
+        tracker_mtx.lock();
+        retValue = p_tracker->topValidAndUproot(top_valid_obj, obj_id);
+        tracker_mtx.unlock();
+    }
 
     if (retValue)
     {
