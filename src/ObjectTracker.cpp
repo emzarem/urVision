@@ -273,28 +273,36 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
         for (auto itr = active_obj_ids.begin(); itr != active_obj_ids.end(); itr++)
         {
             bool found_update = false;
-
+            
             // loop over each new object in the row 
             for (auto sub_itr = sorted_ids[*itr].begin(); sub_itr != sorted_ids[*itr].end(); sub_itr++)
             {
+                // If this matches
                 if (used_cols.count(*sub_itr) == 0 && dist_matrix[*itr][*sub_itr] < m_dist_tol)
                 {
                     // We found our tracked object!
                     used_cols[*sub_itr] = 1; // update that we used this object
-                    m_active_objects[m_id_list[*itr]] = new_objs[*sub_itr];
                     // Increment the number of consecutive frames this was found in
-                    m_framecount[m_id_list[*itr]]++;
-                    // Mark as ready if framecount is appropriate
-                    if (m_status[m_id_list[*itr]] == DEFAULT && m_framecount[m_id_list[*itr]] >= m_min_framecount)
+                    // This ensures the first found object is stored (it should be closest in dist_)
+                    if (!found_update)
                     {
-                        m_status[m_id_list[*itr]] = READY;
-                        Object obj = m_active_objects[m_id_list[*itr]];
-                        ROS_INFO("READY @ (x,y,z,size) = (%.2f,%.2f,%.2f,%.2f)", obj.x, obj.y, obj.z, obj.size);
+                        m_active_objects[m_id_list[*itr]] = new_objs[*sub_itr];
+                        m_framecount[m_id_list[*itr]]++;
+                        // Mark as ready if framecount is appropriate
+                        if (m_status[m_id_list[*itr]] == DEFAULT && m_framecount[m_id_list[*itr]] >= m_min_framecount)
+                        {
+                            m_status[m_id_list[*itr]] = READY;
+                            Object obj = m_active_objects[m_id_list[*itr]];
+                            ROS_INFO("READY @ (x,y,z,size) = (%.2f,%.2f,%.2f,%.2f)", obj.x, obj.y, obj.z, obj.size);
+                        }
+                        found_update = true;
                     }
-                    found_update = true;
-                    break;
+                    else
+                    {
+                        // Take the average
+                        m_active_objects[m_id_list[*itr]].x =  (m_active_objects[m_id_list[*itr]].x + new_objs[*sub_itr].x) / 2;
+                    }
                 }
-
             }
 
             // If not updated its missing this frame
