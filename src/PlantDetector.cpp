@@ -3,7 +3,7 @@
 const String window_capture_name = "Current Frame";
 const String window_color_threshold_name = "Color Threshold";
 const String window_blob_detection = "Blob Detection";
-const String window_test = "Window Test";
+const String window_test = "Keypoints";
 const String window_morphs = "Morphological Output";
 
 // Some constants
@@ -100,17 +100,18 @@ int PlantDetector::init(VisionParams visionParams)
 		namedWindow(window_blob_detection);
 		namedWindow(window_morphs);
 		namedWindow(window_test);
+		namedWindow(window_capture_name);
 
 		// Trackbars to set thresholds for rgb values
-		createTrackbar("Low H", window_color_threshold_name, &low_H, max_value, on_low_H_thresh_trackbar);
-		createTrackbar("High H", window_color_threshold_name, &high_H, max_value, on_high_H_thresh_trackbar);
-		createTrackbar("Low S", window_color_threshold_name, &low_S, max_value, on_low_S_thresh_trackbar);
-		createTrackbar("High S", window_color_threshold_name, &high_S, max_value, on_high_S_thresh_trackbar);
-		createTrackbar("Low V", window_color_threshold_name, &low_V, max_value, on_low_V_thresh_trackbar);
-		createTrackbar("High V", window_color_threshold_name, &high_V, max_value, on_high_V_thresh_trackbar);
-		createTrackbar("Kernel size (morphs):\n 2n +1", window_morphs,
-			&morph_size, max_kernel_size,
-			0);
+		// createTrackbar("Low H", window_color_threshold_name, &low_H, max_value, on_low_H_thresh_trackbar);
+		// createTrackbar("High H", window_color_threshold_name, &high_H, max_value, on_high_H_thresh_trackbar);
+		// createTrackbar("Low S", window_color_threshold_name, &low_S, max_value, on_low_S_thresh_trackbar);
+		// createTrackbar("High S", window_color_threshold_name, &high_S, max_value, on_high_S_thresh_trackbar);
+		// createTrackbar("Low V", window_color_threshold_name, &low_V, max_value, on_low_V_thresh_trackbar);
+		// createTrackbar("High V", window_color_threshold_name, &high_V, max_value, on_high_V_thresh_trackbar);
+		// createTrackbar("Kernel size (morphs):\n 2n +1", window_morphs,
+		// 	&morph_size, max_kernel_size,
+		// 	0);
 	}
 
 	m_inited = true;
@@ -170,6 +171,7 @@ int PlantDetector::processFrame(Mat& frame)
 	// If we are showing windows ...
 	if (m_showWindows)
 	{
+		imshow(window_capture_name, frame);
 		// Show color thresholded image
 		imshow(window_color_threshold_name, greenFrame);
 		// Show morphological output

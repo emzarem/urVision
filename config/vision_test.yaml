@@ -4,7 +4,7 @@ image_topic: /image_raw
 
 camera_cal_file: opencv_camera_properties.yaml
 
-show_img_window: false
+show_img_window: true
 
 # Log framerate every n frames
 frames_log_interval: 20

@@ -8,12 +8,12 @@
 	<!-- Launch the test_image_publisher node (set filename in config file) -->
 	<node pkg="urVision" type="test_image_publisher" name="test_image_publisher" output="screen">
 		<!-- Test image to load -->
-		<param name="test_image" type="string" value="$(find urVision)/test_images/middle_under_1.png" />
+		<param name="test_image" type="string" value="$(find urVision)/test_images/lettuce.JPG" />
 		<!-- Frame rate in Hz -->
 		<param name="frame_rate" type="int" value="$(arg fps)" />
 
-		<param name="x_scale_image" type="double" value="1.00" />
-		<param name="y_scale_image" type="double" value="1.00" />
+		<param name="x_scale_image" type="double" value="0.15" />
+		<param name="y_scale_image" type="double" value="0.15" />
 
         <rosparam command="load" file="$(find urVision)/config/vision_test.yaml" />
 		<rosparam command="load" file="$(find urVision)/config/common.yaml" />
@@ -24,7 +24,6 @@
 
 	<!-- Launch the urVision node -->
 	<node pkg="urVision" type="urVision" name="urVision" output="screen">
-		<param name="test_image" type="string" value="$(find urVision)/test_images/lettuce.JPG" />
 		<rosparam command="load" file="$(find urVision)/config/common.yaml" />
 		<rosparam command="load" file="$(find urVision)/config/vision_test.yaml" />
 	</node>

@@ -101,6 +101,8 @@ public:
 
 		m_queryWeedClient = m_nodeHandle.serviceClient<urGovernor::FetchWeed>(queryWeedServiceName);
 
+		namedWindow("tracker_output");
+
 		ROS_INFO("ImageConverter Pipeline started successfully!");
 
 		return true;
@@ -171,12 +173,20 @@ public:
 		// msg array to publish
 		urVision::weedDataArray weed_msg;	
 
+		// Convert Gray image to RGB
+		Mat im_with_keypoints;
+		cv::cvtColor(m_detector->morphFrame, im_with_keypoints, cv::COLOR_GRAY2RGB);
+
 		// Get the weed list for this frame!
 		vector<KeyPoint> weedList = m_detector->getWeedList();
 		for (vector<KeyPoint>::iterator it = weedList.begin(); it != weedList.end(); ++it)
 		{
 			// Populating weedData list to be published
 			urVision::weedData weed_data;
+
+			// Draw red crosshair on next weed to target!
+			cv::drawMarker(im_with_keypoints, cv::Point(it->pt.x, it->pt.y),  
+							cv::Scalar(0, 0, 255), MARKER_CROSS, it->size*2, 4);
 
 			// Do spatial mapping conversion
 			if (m_spatialMapper->keypointToReferenceFrame(*it, weed_data))
@@ -189,6 +199,8 @@ public:
 			}			
 		}
 
+		imshow("tracker_output", im_with_keypoints);
+
 		// Publish weeddaata
 		if (weed_msg.weeds.size() > 0)
 		{
@@ -197,7 +209,6 @@ public:
 		}
 
 		// Publish weed keypoints drawn on original image
-		Mat im_with_keypoints;
 		drawKeypoints(m_detector->greenFrame, weedList, im_with_keypoints, Scalar(0, 0, 255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
 		// Show the current valid weed (next to be harvested) if there is one 
