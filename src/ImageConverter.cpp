@@ -33,6 +33,7 @@ class ImageConverter
 	image_transport::Publisher m_imagePublisher;  
 	ros::Publisher m_weedDataPublisher;
 	ros::Publisher m_weedThresholdPublisher;
+	ros::Publisher m_frameratePublisher;
 
 	// Service clients
 	ros::ServiceClient m_queryWeedClient;
@@ -44,6 +45,7 @@ class ImageConverter
 	std::string m_imagePublisherName;
 	std::string m_weedDataPublisherName;
 	std::string m_weedThresholdPublisherName;
+	std::string m_frameratePublisherName;
 
 	std::string queryWeedServiceName;
 
@@ -99,9 +101,14 @@ public:
 
 	  	m_weedThresholdPublisher = m_nodeHandle.advertise<std_msgs::Float32>(m_weedThresholdPublisherName, 1);
 
+	  	m_frameratePublisher = m_nodeHandle.advertise<std_msgs::Float32>(m_frameratePublisherName, 1);
+
+
 		m_queryWeedClient = m_nodeHandle.serviceClient<urGovernor::FetchWeed>(queryWeedServiceName);
 
 		ROS_INFO("ImageConverter Pipeline started successfully!");
+
+		start_ = ros::WallTime::now();		
 
 		return true;
 	}
@@ -158,12 +165,16 @@ public:
 		}
 
 		// Every 10 frames, log processing rate
-		if ((m_frameNum % m_frameLogInterval) == 1)
+		if ((m_frameNum % m_frameLogInterval) == 1 && m_frameNum > m_frameLogInterval)
 		{
 			end_ = ros::WallTime::now();
 
 			double frame_rate_hz = ((double)m_frameLogInterval) / ((end_ - start_).toNSec() * 1e-9);
 			ROS_INFO("Processed Frame: %i, running @ %f Hz", (int)m_frameNum, (float)frame_rate_hz);
+			
+			std_msgs::Float32 framerate;
+			framerate.data = float(frame_rate_hz);
+			m_frameratePublisher.publish(framerate);
 
 			start_ = ros::WallTime::now();		
 		}
@@ -205,7 +216,7 @@ public:
         {
 			KeyPoint nextValid;
 			
-			// Do spatial mapping conversion
+			// Map back to image coordinates
 			if (m_spatialMapper->referenceFrameToKeypoint(queryWeedSrv.response.weed, nextValid))
 			{
 				// Draw red crosshair on next weed to target!
@@ -239,6 +250,7 @@ public:
 		if (!m_nodeHandle.getParam("image_publisher", m_imagePublisherName)) return false;
 		if (!m_nodeHandle.getParam("weed_data_publisher", m_weedDataPublisherName)) return false;
 		if (!m_nodeHandle.getParam("weed_threshold_publisher", m_weedThresholdPublisherName)) return false;
+		if (!m_nodeHandle.getParam("framerate_publisher", m_frameratePublisherName)) return false;
 		if (!m_nodeHandle.getParam("show_img_window", m_showWindow)) return false;
 
 		if (!m_nodeHandle.getParam("frames_log_interval", m_frameLogInterval)) return false;

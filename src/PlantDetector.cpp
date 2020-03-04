@@ -68,7 +68,8 @@ int PlantDetector::init(VisionParams visionParams)
 	m_blobParams.minThreshold = 0;
 	m_blobParams.maxThreshold = 255;
 	// Not filtering by color
-	m_blobParams.filterByColor = false;
+	m_blobParams.filterByColor = true;
+	m_blobParams.blobColor = 255;
 
 	// Filter by Area (TODO: EXPERIMENT WITH THIS)
 	m_blobParams.filterByArea = false;

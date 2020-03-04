@@ -64,7 +64,7 @@ typedef float Distance;
  */
 class ObjectTracker {
     public:
-        ObjectTracker(Distance distTol, uint32_t max_dissapeared_frms = 1 ,uint32_t min_valid_framecount = 1);
+        ObjectTracker(Distance distTol, float targetFps, float maxTimeDisappeared, float minTimeValid);
         ~ObjectTracker();
        
         // Getters
@@ -86,6 +86,8 @@ class ObjectTracker {
         // Modifiers
         void update(const std::vector<Object>& new_objs);
 
+        void updateFramerate(float framerate);
+
     private:
         ObjectID register_object(const Object& obj);
         void deregister_object(const ObjectID id);
@@ -99,6 +101,8 @@ class ObjectTracker {
         uint32_t m_max_dissapeared_frms;
         /* Min num. of consecutive frames to be considered valid */
         uint32_t m_min_framecount;
+
+        float m_maxTimeDisappeared, m_minTimeValid;
 
         std::map<ObjectID, Object> m_active_objects;
 

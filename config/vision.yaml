@@ -2,11 +2,9 @@
 camera_name: /csi_cam_0
 # image_rect_color is rectified camera stream
 image_topic: /image_color
-
-camera_cal_file: opencv_camera_properties.yaml
-
 show_img_window: false
-
+# Camera calibration file
+camera_cal_file: opencv_camera_properties.yaml
 # Log framerate every n frames
 frames_log_interval: 50
 
@@ -16,36 +14,38 @@ fov_width_cm: 110
 fov_height_cm: 61
 
 # Any detected objects smaller than this will not be considered
-min_weed_size_cm: 2
+min_weed_size_cm: 3
 # Any detected objects larger than this will not be considered
 max_weed_size_cm: 1000
 
 # default thresholds uses for filtering
-default_weed_size_threshold_cm: 13
-default_crop_size_threshold_cm: 13
+# MAKE SURE THESE ARE THE SAME
+default_weed_size_threshold_cm: 10
+default_crop_size_threshold_cm: 10
 
 ############################
 # Image processing configs #
 ############################
-blur_kernel_size: 15
+blur_kernel_size: 10
 
 # Color thresholding
+# Hue 30-90 should be green ...
 low_hue: 40
-low_sat: 60
-low_value: 50
+low_sat: 55
+low_value: 45
 high_hue: 90
 
 # Morph operations
-morph_size: 3
+morph_size: 2
 morph_opening_iterations: 1
 morph_closing_iterations: 5
 
 # Blob detection
-min_circularity: 0.5
-min_convexity: 0.25
-min_inertia_ratio: 0.25
+min_circularity: 0.30
+min_convexity: 0.20
+min_inertia_ratio: 0.20
 
 # Plant filter decision accumulators
 min_accumulator_size: 10
-max_accumulator_size: 100
+max_accumulator_size: 80
 

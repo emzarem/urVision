@@ -33,9 +33,13 @@ static Distance euclidean_distance(const Object& a, const Object& b)
  *      @param max_dissapeared_frms : 
  *              max number of missed frames before object removed
  */
-ObjectTracker::ObjectTracker(Distance distTol, uint32_t max_dissapeared_frms, uint32_t min_valid_framecount) :
-    m_dist_tol(distTol), m_max_dissapeared_frms(max_dissapeared_frms), m_min_framecount(min_valid_framecount)
-{}
+ObjectTracker::ObjectTracker(Distance distTol, float targetFps, float maxTimeDisappeared, float minTimeValid) :
+    m_dist_tol(distTol), m_maxTimeDisappeared(maxTimeDisappeared), m_minTimeValid(minTimeValid)
+{
+    m_max_dissapeared_frms = (int)(floor(targetFps * m_maxTimeDisappeared));
+    m_min_framecount = (int)(ceil(targetFps * m_minTimeValid));
+    ROS_INFO("Tracker -- maxDisappearedFrms == %i; minValidFrames == %i", m_max_dissapeared_frms, m_min_framecount);
+}
 
 /* ~ObjectTracker
  *      @brief destructor
@@ -78,18 +82,10 @@ bool ObjectTracker::markUprooted(ObjectID uprootedId, bool success)
         if (*itr == uprootedId)
         {
             /* Sanity check */
-            // if ( m_status[*itr] == IN_PROGRESS)
+            if ( m_status[*itr] == IN_PROGRESS)
             {
-                // If calling with success
-                if (success)
-                {
-                    m_status[*itr] = COMPLETED;
-                }
-                // If not successful
-                else
-                {
-                    m_status[*itr] = READY;
-                }
+                m_status[*itr] = (success ? COMPLETED : READY);
+                
                 return true;
             }
             
@@ -116,7 +112,7 @@ bool ObjectTracker::topValidAndUproot(Object& to_ret, ObjectID& ret_id)
     for (auto itr = m_id_list.begin(); itr != m_id_list.end(); itr++)
     {
         // IF status is READY or IN_PROGRESS
-        if (m_status[*itr] == READY || m_status[*itr] == IN_PROGRESS)
+        if (m_status[*itr] == READY)
         {
             // Set status to be IN_PROGRESS
             m_status[*itr] = IN_PROGRESS;
@@ -163,7 +159,7 @@ bool ObjectTracker::topValid(Object& to_ret)
     for (auto itr = m_id_list.begin(); itr != m_id_list.end(); itr++)
     {
         // If status is READY OR in progress (because calls to this function are just to show valid objects)
-        if (m_status[*itr] == READY || 
+        if (m_status[*itr] == READY ||
             m_status[*itr] == IN_PROGRESS)
         {
             to_ret = m_active_objects[*itr];
@@ -347,6 +343,13 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
     cleanup_dissapeared();
 }
 
+void ObjectTracker::updateFramerate(float framerate)
+{
+    m_max_dissapeared_frms = (int)(floor(framerate * m_maxTimeDisappeared));
+    m_min_framecount = (int)(ceil(framerate * m_minTimeValid));
+    ROS_DEBUG("Tracker update framerate -- maxDisappearedFrms == %i; minValidFrames == %i", m_max_dissapeared_frms, m_min_framecount);
+}
+
 /* register_object
  *      @brief registers an object as active
  */
@@ -395,7 +398,9 @@ void ObjectTracker::cleanup_dissapeared()
     for (auto itr = m_disappeared.begin(); itr != m_disappeared.end(); itr++)
     {
         if (itr->second > m_max_dissapeared_frms)
+        {
             deregister_object(itr->first);
+        }
     }
 }
 

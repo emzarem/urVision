@@ -6,6 +6,8 @@
 #include <urGovernor/FetchWeed.h>
 #include <urGovernor/MarkUprooted.h>
 #include <urVision/weedDataArray.h>
+#include <std_msgs/Float32.h>
+
 
 #include <vector>
 #include <mutex>
@@ -15,13 +17,15 @@ std::mutex tracker_mtx;
 
 // Parameters to read from configs
 std::string weedPublisherName;
+std::string frameratePublisherName;
+
 std::string fetchWeedServiceName;
 std::string queryWeedServiceName;
 std::string markUprootedServiceName;
 
 Distance distanceTolerance;
 float maxTimeDisappeared;
-int minTimeValid;
+float minTimeValid;
 
 float targetFps;
 
@@ -83,19 +87,16 @@ bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
 bool query_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Response &res)
 {
     Object top_valid_obj;
+    bool retValue = false;
 
     tracker_mtx.lock();
-    bool retValue = p_tracker->topValid(top_valid_obj);
+    retValue = p_tracker->topValid(top_valid_obj);
     tracker_mtx.unlock();
 
     if (retValue)
     {
         // Set response data to include weed fetched from the top
         object_to_weed(top_valid_obj, res.weed);
-    }
-    else
-    {
-        ROS_DEBUG("query_weed_service: Issues with calls to tracker.");
     }
 
     return retValue;
@@ -134,10 +135,20 @@ void new_weed_callback(const urVision::weedDataArray::ConstPtr& msg)
     tracker_mtx.unlock();
 }
 
+// msg callback
+void new_framerate_callback(const std_msgs::Float32::ConstPtr& msg)
+{
+    tracker_mtx.lock();
+    p_tracker->updateFramerate(msg->data);
+    tracker_mtx.unlock();
+}
+
 // General parameters for this node
 bool readGeneralParameters(ros::NodeHandle nodeHandle)
 {
     if (!nodeHandle.getParam("weed_data_publisher", weedPublisherName)) return false;
+    if (!nodeHandle.getParam("framerate_publisher", frameratePublisherName)) return false;
+    
     if (!nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
     if (!nodeHandle.getParam("query_weed_service", queryWeedServiceName)) return false;
     if (!nodeHandle.getParam("mark_uprooted_service", markUprootedServiceName)) return false;
@@ -164,15 +175,13 @@ int main(int argc, char** argv)
     }
 
     // Set minValidFrames and maxTimeDisappeared based on frame rate
-    int maxDisappearedFrms = (int)(floor((1.0*targetFps) * maxTimeDisappeared));
-    int minValidFrames = (int)(ceil((1.0*targetFps) * minTimeValid));
-    ROS_INFO("Tracker -- maxDisappearedFrms == %i; minValidFrames == %i", maxDisappearedFrms, minValidFrames);
     tracker_mtx.lock();
-    p_tracker = new ObjectTracker(distanceTolerance, maxDisappearedFrms, minValidFrames);
+    p_tracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid);
     tracker_mtx.unlock();
 
     // Subscriber to the weed publisher (from urVision)
     ros::Subscriber sub = nodeHandle.subscribe(weedPublisherName, 1000, new_weed_callback);
+    ros::Subscriber framerateSub = nodeHandle.subscribe(frameratePublisherName, 1, new_framerate_callback);
 
     // Services to provide to controller (and vision node)
     ros::ServiceServer fetchWeedService = nodeHandle.advertiseService(fetchWeedServiceName, fetch_weed);
