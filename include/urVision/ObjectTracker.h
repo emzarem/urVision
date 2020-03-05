@@ -25,6 +25,11 @@ struct Object {
     float y;
     float z;
     float size;
+    double timestamp;
+
+    // Internally used in tracker (cm/s)
+    float x_vel;
+    float y_vel;
 
     operator std::string() const
     {
@@ -103,6 +108,10 @@ class ObjectTracker {
         ObjectID register_object(const Object& obj);
         void deregister_object(const ObjectID id);
         void cleanup_dissapeared();
+        void update_active_object(ObjectID id, const Object& new_obj);
+        inline float lowpass(float newVal, float oldVal, double dt) {
+            return oldVal + (dt/m_lpfTau)*(newVal - oldVal);
+        };
 
     private:
         Distance m_dist_tol;
@@ -117,8 +126,10 @@ class ObjectTracker {
 
         float m_maxTimeDisappeared, m_minTimeValid;
 
-        ObjectType m_type;
-
+       ObjectType m_type;
+        /* For Low pass filtering velocity */
+        static constexpr float m_lpfTau = 1.0/5; // 5 Hz cutoff
+  
         std::map<ObjectID, Object> m_active_objects;
 
         /* Each registered object will have an associated:

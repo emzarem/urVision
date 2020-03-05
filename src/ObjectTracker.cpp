@@ -353,6 +353,9 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
             // If not updated its missing this frame
             if (!found_update)
             {
+                // Estimate new position
+
+                // Mark as dissapeared and reset framecount
                 m_disappeared[m_id_list[*itr]]++;
                 m_framecount[m_id_list[*itr]] = 0;
                 if (m_status[m_id_list[*itr]] == READY)
@@ -438,7 +441,23 @@ void ObjectTracker::cleanup_dissapeared()
 }
 
 
+/* update_active_object
+ *      @brief Update the values of an active object given a new object
+ */
+void ObjectTracker::update_active_object(ObjectID id, const Object& new_obj)
+{
+    Object old = m_active_objects[id];
+    Object& toUpdate = m_active_objects[id];
 
+    toUpdate = new_obj;
+    double dt = toUpdate.timestamp - old.timestamp;
+    float new_x_vel = (toUpdate.x - old.x)/dt;
+    float new_y_vel = (toUpdate.y - old.y)/dt;
+
+    // LPF
+    toUpdate.x_vel = lowpass(new_x_vel, old.x_vel, dt);
+    toUpdate.y_vel = lowpass(new_y_vel, old.y_vel, dt);
+}
 
 
 

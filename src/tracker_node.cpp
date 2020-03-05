@@ -35,10 +35,10 @@ float minTimeValid;
 
 float targetFps;
 
-static inline Object weed_to_object(urVision::weedData& weed)
+static inline Object weed_to_object(urVision::weedData& weed, ros::Time stamp)
 {
     /* all values are floats */
-    return {(float)weed.point.x, (float)weed.point.y, (float)weed.point.z, (float)weed.size_cm};
+    return {(float)weed.x_cm, (float)weed.y_cm, (float)weed.z_cm, (float)weed.size_cm, (double)stamp.toSec()};
 }
 
 static inline void object_to_weed(Object& obj, urVision::weedData& weed)
@@ -149,7 +149,7 @@ void new_weed_callback(const urVision::weedDataArray::ConstPtr& msg)
     for (auto weed : msg->weeds)
     {
         ROS_DEBUG("\tNew weed: x- %f    y- %f      z- %f      size- %f", weed.point.x, weed.point.y, weed.point.z, weed.size_cm);
-        new_objs.push_back(weed_to_object(weed));
+        new_objs.push_back(weed_to_object(weed, msg->header.stamp));
     }
 
     weedTrackerLock.lock();
@@ -166,7 +166,7 @@ void new_crop_callback(const urVision::weedDataArray::ConstPtr& msg)
     for (auto weed : msg->weeds)
     {
         ROS_DEBUG("\tNew crop: x- %f    y- %f      z- %f      size- %f", weed.point.x, weed.point.y, weed.point.z, weed.size_cm);
-        new_objs.push_back(weed_to_object(weed));
+        new_objs.push_back(weed_to_object(weed, msg->header.stamp));
     }
 
     cropTrackerLock.lock();
@@ -240,3 +240,4 @@ int main(int argc, char** argv)
     delete p_weedTracker;
     weedTrackerLock.unlock();
 }
+
