@@ -102,29 +102,19 @@ size_t ObjectTracker::object_count()
     return m_active_objects.size();
 }
 
+/* markUprooted
+ *      @brief mark the given object as COMPLETED
+ */
 bool ObjectTracker::markUprooted(ObjectID uprootedId, bool success)
 {
-    if (object_count() == 0)
-        return false;
-
-    /* Go through all active objects and check for this objectId conditions */
-    for (auto itr = m_id_list.begin(); itr != m_id_list.end(); itr++)
-    {
-        /* If this is the object to mark as uprooted */
-        if (*itr == uprootedId)
-        {
-            /* Sanity check */
-            if ( m_status[*itr] == IN_PROGRESS)
-            {
-                m_status[*itr] = (success ? COMPLETED : READY);
-                
-                return true;
-            }
-            
-            return false;
+    try {
+        if (m_status.at(uprootedId) == IN_PROGRESS) {
+            m_status.at(uprootedId) = (success ? COMPLETED : READY);
+            return true;
         }
+    } catch (const std::out_of_range& oor) {
+        // Not a valid key
     }
-
     return false;
 }
 
