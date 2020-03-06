@@ -13,20 +13,27 @@ fov_camera_distance_cm: 65
 fov_width_cm: 110
 fov_height_cm: 61
 
+
+#####################
+# Filtering configs #
+#####################
 # Any detected objects smaller than this will not be considered
 min_weed_size_cm: 3
 # Any detected objects larger than this will not be considered
 max_weed_size_cm: 1000
 
+# Objects within this distance tolerance will be marked as the same object
+filter_distance_tolerance_cm: 10
+
 # default thresholds uses for filtering
 # MAKE SURE THESE ARE THE SAME
-default_weed_size_threshold_cm: 10
-default_crop_size_threshold_cm: 10
+default_weed_size_threshold_cm: 11
+default_crop_size_threshold_cm: 11
 
 ############################
 # Image processing configs #
 ############################
-blur_kernel_size: 10
+blur_kernel_size: 15
 
 # Color thresholding
 # Hue 30-90 should be green ...
@@ -38,7 +45,7 @@ high_hue: 90
 # Morph operations
 morph_size: 2
 morph_opening_iterations: 1
-morph_closing_iterations: 5
+morph_closing_iterations: 4
 
 # Blob detection
 min_circularity: 0.30
@@ -47,5 +54,5 @@ min_inertia_ratio: 0.20
 
 # Plant filter decision accumulators
 min_accumulator_size: 10
-max_accumulator_size: 80
+max_accumulator_size: 40
 

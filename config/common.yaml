@@ -1,7 +1,8 @@
 # Common attributes (used by both urVision and urGovernor)
 
 image_publisher: /image_converter/output_video
-weed_data_publisher: /vision_target/weed_data
+weed_data_publisher: /vision/weed_data
+crop_data_publisher: /vision/crop_data
 framerate_publisher: /image_converter/framerate
 
 

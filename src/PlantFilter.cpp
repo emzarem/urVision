@@ -2,11 +2,23 @@
 #include <numeric>
 #include <ros/ros.h>
 
+using namespace cv;
+
+/* euclidean_distance
+ *      @brief Calculates euclidean distance between two objects
+ */
+inline float euclideanDistance(const KeyPoint& a, const KeyPoint& b)
+{
+    float delt_x = (float)a.pt.x - (float)b.pt.x;
+    float delt_y = (float)a.pt.y - (float)b.pt.y;
+    return sqrt(delt_x*delt_x + delt_y*delt_y);
+}
+
 PlantFilter::PlantFilter(VisionParams visionParams) :
 	m_visionParams(visionParams)
 {
-
 	m_maxSize = m_visionParams.frameSize.height;
+	m_distanceTol = m_visionParams.filterDistanceTol;
 	m_otsuThreshold = -1;
 
 	if (visionParams.defaultWeedThreshold <= 0 || 
@@ -27,13 +39,54 @@ PlantFilter::~PlantFilter()
 	all objects with size > defaultCropThreshold are marked as crops
 	if defaultWeedThreshold < size < defaultCropThreshold, attempt to use otsuThresholding
 */
-vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
+void PlantFilter::filter(vector<KeyPoint>& currentObjects, vector<KeyPoint>& outputWeeds, vector<KeyPoint>& outputCrops)
 {
-	vector<KeyPoint> outputWeeds;
+	// Clear both output vectors
 	outputWeeds.clear();
+	outputCrops.clear();
 
-	// This is an initial condition
-	for (vector<KeyPoint>::iterator it = currentPlants.begin(); it != currentPlants.end(); ++it)
+	static float distance = 0;
+	auto itr1 = currentObjects.begin();
+	// First, group objects as necessary
+	for (int count = 1; itr1 != currentObjects.end(); count++)
+	{
+		// Go through all objects
+		for (auto itr2 = currentObjects.begin(); itr2 != currentObjects.end();  ) 
+		{
+			if (itr1 != itr2)
+			{
+				distance = euclideanDistance(*itr1, *itr2);
+				// Check euclidean distance between the 2 points
+				if (distance < m_distanceTol)
+				{
+					// Group these objects
+					itr1->pt.x = (itr1->pt.x + itr2->pt.x) / 2;
+					itr1->pt.y = (itr1->pt.y + itr2->pt.y) / 2;
+
+					// itr1->size = ((itr1->size / 2) + (distance / 2) + (itr2->size / 2) ) * 2;
+					// Don't need to incorprate the distance in between if it is small enough
+					itr1->size = (itr1->size > itr2->size) ? itr1->size : itr2->size;
+
+					// Erase this object because we grouped it
+					itr2 = currentObjects.erase(itr2);
+
+					// Continue checking for objects to match
+					continue;
+				}
+			}
+			
+			// Increment second-level iterator
+			itr2++;
+		}
+
+		if (count > currentObjects.size())
+			break;
+
+		itr1 = currentObjects.begin() + count;
+	}
+	
+	// Go through all currentObjects
+	for (auto it = currentObjects.begin(); it != currentObjects.end(); ++it)
 	{
 		// Verify bigger than minimum size, otherwise completely ignore
 		if (it->size >= m_visionParams.minWeedSize)
@@ -43,14 +96,14 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 			{
 				// Mark as crop
 				addToAccumulator(m_cropSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-				addToAccumulator(m_cropXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
+				// Add to output crop list
+				outputCrops.push_back(*it);
 			}
 			// If size is less than the weed threshold
 			else if (it->size < m_visionParams.defaultWeedThreshold)
 			{
 				// Identify as a weed!
 				addToAccumulator(m_weedSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-				addToAccumulator(m_weedXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
 				// Add to output weed list
 				outputWeeds.push_back(*it);
 			}
@@ -69,13 +122,13 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 					{
 						// Mark as crop
 						addToAccumulator(m_cropSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-						addToAccumulator(m_cropXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
+						// Add to output crop list
+						outputCrops.push_back(*it);	
 					}
 					else
 					{
 						// Identify as a weed!
 						addToAccumulator(m_weedSizeAccumulator, it->size, m_visionParams.maxAccumulatorSize);
-						addToAccumulator(m_weedXAccumulator, it->pt.x, m_visionParams.maxAccumulatorSize);
 						// Add to output list of filtered weeds
 						outputWeeds.push_back(*it);
 					}
@@ -95,7 +148,7 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 		vector<uint8_t> otsuAccumulatorNorm;
 		otsuAccumulatorNorm.clear();
 		// Normalize the current values in the accumulator
-		for (vector<float>::iterator it = m_otsuAccumulator.begin(); it != m_otsuAccumulator.end(); ++it)
+		for (auto it = m_otsuAccumulator.begin(); it != m_otsuAccumulator.end(); ++it)
 		{
 			uint8_t normalizedValue = (uint8_t)(((*it - minValue)/(maxValue - minValue))*255);
 			otsuAccumulatorNorm.push_back(normalizedValue);
@@ -107,7 +160,7 @@ vector<KeyPoint> PlantFilter::filterWeeds(vector<KeyPoint> currentPlants)
 		m_otsuThreshold = (m_otsuThresholdNorm/255.0)*(maxValue - minValue) + minValue;
 	}
 
-	return outputWeeds;
+	return;
 }
 
 template<typename T>

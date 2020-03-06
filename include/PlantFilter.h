@@ -22,6 +22,7 @@ public:
 		minAccumulatorSize = 0;
 		maxAccumulatorSize = 0;
 		blurSize = 0;
+		filterDistanceTol = 0;
 	}
 	~VisionParams(){
 
@@ -30,6 +31,8 @@ public:
 	cv::Size frameSize;
 	float defaultWeedThreshold;
 	float defaultCropThreshold;
+
+	float filterDistanceTol;
 	
 	float minWeedSize;
 	float maxWeedSize;
@@ -61,15 +64,14 @@ public:
 
 	~PlantFilter();
 
-	vector<KeyPoint> filterWeeds(vector<KeyPoint> currentPlants);
+	// Main filtering function
+	void filter(vector<KeyPoint>& currentObjects, vector<KeyPoint>& outputWeeds, vector<KeyPoint>& outputCrops);
 
 	VisionParams m_visionParams;
 	float m_otsuThreshold;
 
 	int m_maxSize;
-
-	vector<float> m_weedXAccumulator;
-	vector<float> m_cropXAccumulator;
+	float m_distanceTol;
 	
 	vector<float> m_weedSizeAccumulator;
 	vector<float> m_cropSizeAccumulator;

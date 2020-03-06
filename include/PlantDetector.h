@@ -22,6 +22,8 @@ public:
 	int processFrame(Mat& frame);
 
 	vector<KeyPoint> getWeedList();
+	vector<KeyPoint> getCropList();
+
 	float getWeedThreshold();
 
 	// Various image holders
@@ -35,7 +37,6 @@ public:
 private:
 	vector<KeyPoint> DetectBlobs(Mat& srcFrame);
 
-	vector<KeyPoint> m_lastObjectsFound;
 	vector<KeyPoint> m_weedList;
 	vector<KeyPoint> m_cropList;
 

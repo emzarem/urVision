@@ -158,15 +158,12 @@ int PlantDetector::processFrame(Mat& frame)
 	blurFrame.copyTo(greenFrame, morphFrame);
 
 	// Shape Processing (BLOB detection)
+	// Does NOT yet filter by size
 	vector<KeyPoint> detectedBlobs;
 	m_blobDetector->detect(morphFrame, detectedBlobs);
 
-	// Save latest objects detected
-	m_lastObjectsFound = detectedBlobs;
-
 	// Filter weeds from this object list
-	m_weedList.clear();
-	m_weedList = m_plantFilter->filterWeeds(m_lastObjectsFound);
+	m_plantFilter->filter(detectedBlobs, m_weedList, m_cropList);
 
 	// If we are showing windows ...
 	if (m_showWindows)
@@ -192,6 +189,11 @@ int PlantDetector::processFrame(Mat& frame)
 vector<KeyPoint> PlantDetector::getWeedList()
 {
 	return m_weedList;
+}
+
+vector<KeyPoint> PlantDetector::getCropList()
+{
+	return m_cropList;
 }
 
 float PlantDetector::getWeedThreshold()

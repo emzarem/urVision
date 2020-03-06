@@ -12,11 +12,16 @@
 #include <vector>
 #include <mutex>
 
-static ObjectTracker* p_tracker;
-std::mutex tracker_mtx;
+static ObjectTracker* p_weedTracker;
+std::mutex weedTrackerLock;
+
+static ObjectTracker* p_cropTracker;
+std::mutex cropTrackerLock;
 
 // Parameters to read from configs
 std::string weedPublisherName;
+std::string cropPublisherName;
+
 std::string frameratePublisherName;
 
 std::string fetchWeedServiceName;
@@ -57,16 +62,16 @@ bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
     
     if (req.request_id >= 0)
     {
-        tracker_mtx.lock();
-        retValue = p_tracker->getObjectByID(top_valid_obj, req.request_id);
-        tracker_mtx.unlock();   
+        weedTrackerLock.lock();
+        retValue = p_weedTracker->getObjectByID(top_valid_obj, req.request_id);
+        weedTrackerLock.unlock();   
         obj_id = req.request_id;
     }
     else
     {
-        tracker_mtx.lock();
-        retValue = p_tracker->topValidAndUproot(top_valid_obj, obj_id);
-        tracker_mtx.unlock();
+        weedTrackerLock.lock();
+        retValue = p_weedTracker->topValidAndUproot(top_valid_obj, obj_id);
+        weedTrackerLock.unlock();
     }
 
     if (retValue)
@@ -89,9 +94,9 @@ bool query_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
     Object top_valid_obj;
     bool retValue = false;
 
-    tracker_mtx.lock();
-    retValue = p_tracker->topValid(top_valid_obj);
-    tracker_mtx.unlock();
+    weedTrackerLock.lock();
+    retValue = p_weedTracker->topValid(top_valid_obj);
+    weedTrackerLock.unlock();
 
     if (retValue)
     {
@@ -105,9 +110,9 @@ bool query_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
 // mark_uprooted_service
 bool mark_uprooted(urGovernor::MarkUprooted::Request &req, urGovernor::MarkUprooted::Response &res)
 {
-    tracker_mtx.lock();
-    bool retValue = p_tracker->markUprooted(req.tracking_id, req.success);
-    tracker_mtx.unlock();
+    weedTrackerLock.lock();
+    bool retValue = p_weedTracker->markUprooted(req.tracking_id, req.success);
+    weedTrackerLock.unlock();
 
     if (!retValue)
     {
@@ -130,23 +135,41 @@ void new_weed_callback(const urVision::weedDataArray::ConstPtr& msg)
         new_objs.push_back(weed_to_object(weed));
     }
 
-    tracker_mtx.lock();
-    p_tracker->update(new_objs);
-    tracker_mtx.unlock();
+    weedTrackerLock.lock();
+    p_weedTracker->update(new_objs);
+    weedTrackerLock.unlock();
+}
+
+void new_crop_callback(const urVision::weedDataArray::ConstPtr& msg)
+{
+    ROS_DEBUG("Crop array received.");
+    
+    std::vector<Object> new_objs;
+
+    for (auto weed : msg->weeds)
+    {
+        ROS_DEBUG("\tNew crop: x- %f    y- %f      z- %f      size- %f", weed.x_cm, weed.y_cm, weed.z_cm, weed.size_cm);
+        new_objs.push_back(weed_to_object(weed));
+    }
+
+    cropTrackerLock.lock();
+    p_cropTracker->update(new_objs);
+    cropTrackerLock.unlock();
 }
 
 // msg callback
 void new_framerate_callback(const std_msgs::Float32::ConstPtr& msg)
 {
-    tracker_mtx.lock();
-    p_tracker->updateFramerate(msg->data);
-    tracker_mtx.unlock();
+    weedTrackerLock.lock();
+    p_weedTracker->updateFramerate(msg->data);
+    weedTrackerLock.unlock();
 }
 
 // General parameters for this node
 bool readGeneralParameters(ros::NodeHandle nodeHandle)
 {
     if (!nodeHandle.getParam("weed_data_publisher", weedPublisherName)) return false;
+    if (!nodeHandle.getParam("crop_data_publisher", cropPublisherName)) return false;
     if (!nodeHandle.getParam("framerate_publisher", frameratePublisherName)) return false;
     
     if (!nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
@@ -174,13 +197,19 @@ int main(int argc, char** argv)
         ros::requestShutdown();
     }
 
-    // Set minValidFrames and maxTimeDisappeared based on frame rate
-    tracker_mtx.lock();
-    p_tracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid);
-    tracker_mtx.unlock();
+    // Initialize weedTracker
+    weedTrackerLock.lock();
+    p_weedTracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid);
+    weedTrackerLock.unlock();
+
+    // Initialize cropTracker
+    cropTrackerLock.lock();
+    p_cropTracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid);
+    cropTrackerLock.unlock();
 
     // Subscriber to the weed publisher (from urVision)
-    ros::Subscriber sub = nodeHandle.subscribe(weedPublisherName, 1000, new_weed_callback);
+    ros::Subscriber weedSub = nodeHandle.subscribe(weedPublisherName, 1000, new_weed_callback);
+    ros::Subscriber cropSub = nodeHandle.subscribe(cropPublisherName, 1000, new_crop_callback);
     ros::Subscriber framerateSub = nodeHandle.subscribe(frameratePublisherName, 1, new_framerate_callback);
 
     // Services to provide to controller (and vision node)
@@ -190,7 +219,7 @@ int main(int argc, char** argv)
 
     ros::spin();
 
-    tracker_mtx.lock();
-    delete p_tracker;
-    tracker_mtx.unlock();
+    weedTrackerLock.lock();
+    delete p_weedTracker;
+    weedTrackerLock.unlock();
 }
