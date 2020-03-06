@@ -33,8 +33,8 @@ static Distance euclidean_distance(const Object& a, const Object& b)
  *      @param max_dissapeared_frms : 
  *              max number of missed frames before object removed
  */
-ObjectTracker::ObjectTracker(Distance distTol, float targetFps, float maxTimeDisappeared, float minTimeValid) :
-    m_dist_tol(distTol), m_maxTimeDisappeared(maxTimeDisappeared), m_minTimeValid(minTimeValid)
+ObjectTracker::ObjectTracker(Distance distTol, float targetFps, float maxTimeDisappeared, float minTimeValid, ObjectType trackerType) :
+    m_dist_tol(distTol), m_maxTimeDisappeared(maxTimeDisappeared), m_minTimeValid(minTimeValid), m_framerate(targetFps), m_type(trackerType)
 {
     m_max_dissapeared_frms = (int)(floor(targetFps * m_maxTimeDisappeared));
     m_min_framecount = (int)(ceil(targetFps * m_minTimeValid));
@@ -308,7 +308,15 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
                         {
                             m_status[m_id_list[*itr]] = READY;
                             Object obj = m_active_objects[m_id_list[*itr]];
-                            ROS_INFO("READY @ (x,y,z,size) = (%.2f,%.2f,%.2f,%.2f)", obj.x, obj.y, obj.z, obj.size);
+
+                            if (m_type == ObjectType::WEED)
+                            {
+                                ROS_INFO("WEED READY @ (x,y,z,size) = (%.2f,%.2f,%.2f,%.2f)", obj.x, obj.y, obj.z, obj.size);
+                            }
+                            else if (m_type == ObjectType::CROP)
+                            {
+                                ROS_DEBUG("CROP READY @ (x,y,z,size) = (%.2f,%.2f,%.2f,%.2f)", obj.x, obj.y, obj.z, obj.size);
+                            }
                         }
                         found_update = true;
                     }
@@ -397,7 +405,8 @@ void ObjectTracker::cleanup_dissapeared()
 {
     for (auto itr = m_disappeared.begin(); itr != m_disappeared.end(); itr++)
     {
-        if (itr->second > m_max_dissapeared_frms)
+        // Only if it never became ready
+        if (m_status[itr->first] == DEFAULT && itr->second > m_max_dissapeared_frms)
         {
             deregister_object(itr->first);
         }

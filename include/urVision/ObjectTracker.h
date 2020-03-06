@@ -46,6 +46,12 @@ enum ObjectStatus
     COMPLETED = 3
 };
 
+enum ObjectType
+{
+    WEED = 0,
+    CROP = 1
+}; 
+
 /* ObjectID
  *      @brief Object ID type used to track
  */
@@ -64,7 +70,7 @@ typedef float Distance;
  */
 class ObjectTracker {
     public:
-        ObjectTracker(Distance distTol, float targetFps, float maxTimeDisappeared, float minTimeValid);
+        ObjectTracker(Distance distTol, float targetFps, float maxTimeDisappeared, float minTimeValid, ObjectType trackerType = ObjectType::WEED);
         ~ObjectTracker();
        
         // Getters
@@ -102,7 +108,11 @@ class ObjectTracker {
         /* Min num. of consecutive frames to be considered valid */
         uint32_t m_min_framecount;
 
+        float m_framerate;
+
         float m_maxTimeDisappeared, m_minTimeValid;
+
+        ObjectType m_type;
 
         std::map<ObjectID, Object> m_active_objects;
 
