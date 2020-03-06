@@ -5,6 +5,8 @@ weed_data_publisher: /vision/weed_data
 crop_data_publisher: /vision/crop_data
 framerate_publisher: /image_converter/framerate
 
+tf_world_frame: world
+tf_camera_frame: camera1
 
 weed_threshold_publisher: /vision_target/otsu_threshold
 

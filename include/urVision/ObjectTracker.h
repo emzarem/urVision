@@ -75,6 +75,10 @@ class ObjectTracker {
        
         // Getters
         std::vector<Object> active_objects();
+
+        // Gets all objects that are marked READY
+        std::vector<Object> getReadyObjects();
+
         size_t object_count();
         
         // Sorted operations
