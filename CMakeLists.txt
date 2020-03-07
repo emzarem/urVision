@@ -20,6 +20,7 @@ find_package(catkin REQUIRED
     cv_bridge
     std_msgs
     image_transport
+    geometry_msgs
 )
 
 ## Find system libraries
@@ -34,6 +35,7 @@ add_message_files(
 
 generate_messages(
   DEPENDENCIES
+  geometry_msgs
   std_msgs
 )
 
@@ -57,6 +59,7 @@ catkin_package(
     std_msgs
     cv_bridge
     image_transport
+    geometry_msgs
 #  DEPENDS
 #    Boost
 )

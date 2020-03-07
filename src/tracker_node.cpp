@@ -37,14 +37,14 @@ float targetFps;
 static inline Object weed_to_object(urVision::weedData& weed)
 {
     /* all values are floats */
-    return {(float)weed.x_cm, (float)weed.y_cm, (float)weed.z_cm, (float)weed.size_cm};
+    return {(float)weed.point.x, (float)weed.point.y, (float)weed.point.z, (float)weed.size_cm};
 }
 
 static void object_to_weed(Object& obj, urVision::weedData& weed)
 {
-    weed.x_cm = obj.x;
-    weed.y_cm = obj.y;
-    weed.z_cm = obj.z;
+    weed.point.x = obj.x;
+    weed.point.y = obj.y;
+    weed.point.z = obj.z;
     weed.size_cm = obj.size;
 }
 
@@ -131,7 +131,7 @@ void new_weed_callback(const urVision::weedDataArray::ConstPtr& msg)
 
     for (auto weed : msg->weeds)
     {
-        ROS_DEBUG("\tNew weed: x- %f    y- %f      z- %f      size- %f", weed.x_cm, weed.y_cm, weed.z_cm, weed.size_cm);
+        ROS_DEBUG("\tNew weed: x- %f    y- %f      z- %f      size- %f", weed.point.x, weed.point.y, weed.point.z, weed.size_cm);
         new_objs.push_back(weed_to_object(weed));
     }
 
@@ -148,7 +148,7 @@ void new_crop_callback(const urVision::weedDataArray::ConstPtr& msg)
 
     for (auto weed : msg->weeds)
     {
-        ROS_DEBUG("\tNew crop: x- %f    y- %f      z- %f      size- %f", weed.x_cm, weed.y_cm, weed.z_cm, weed.size_cm);
+        ROS_DEBUG("\tNew crop: x- %f    y- %f      z- %f      size- %f", weed.point.x, weed.point.y, weed.point.z, weed.size_cm);
         new_objs.push_back(weed_to_object(weed));
     }
 

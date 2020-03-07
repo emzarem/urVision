@@ -21,4 +21,5 @@
   <depend>cv_bridge</depend>
   <depend>std_msgs</depend>
   <depend>image_transport</depend>
+  <depend>geometry_msgs</depend>
 </package>

@@ -267,7 +267,7 @@ public:
 				}
 				else
 				{
-					ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", queryWeedSrv.response.weed.x_cm, queryWeedSrv.response.weed.y_cm);
+					ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", queryWeedSrv.response.weed.point.x, queryWeedSrv.response.weed.point.y);
 				}
 			}	
 		}
