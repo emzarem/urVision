@@ -6,7 +6,7 @@ show_img_window: false
 # Camera calibration file
 camera_cal_file: opencv_camera_properties.yaml
 # Publishing rate for the REAL framerate
-frames_log_interval: 20
+frames_log_interval: 30
 
 # Camera frame parameters (ground projection)
 fov_camera_distance_cm: 65
@@ -37,9 +37,9 @@ blur_kernel_size: 15
 
 # Color thresholding
 # Hue 30-90 should be green ...
-low_hue: 40
-low_sat: 55
-low_value: 45
+low_hue: 50
+low_sat: 60
+low_value: 60
 high_hue: 90
 
 # Morph operations
@@ -54,5 +54,5 @@ min_inertia_ratio: 0.20
 
 # Plant filter decision accumulators
 min_accumulator_size: 10
-max_accumulator_size: 40
+max_accumulator_size: 20
 

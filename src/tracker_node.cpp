@@ -9,14 +9,12 @@
 #include <std_msgs/Float32.h>
 
 // For tf2
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
-
-// Transform message
 #include <geometry_msgs/TransformStamped.h>
-// Gives us position, orientiation
-#include <geometry_msgs/PoseStamped.h>
+
 
 #include <vector>
 #include <mutex>
@@ -24,17 +22,21 @@
 static inline Object weed_to_object(urVision::weedData& weed)
 {
     /* all values are floats */
-    return {(float)weed.x_cm, (float)weed.y_cm, (float)weed.z_cm, (float)weed.size_cm};
+    return {(float)weed.point.x, (float)weed.point.y, (float)weed.point.z, (float)weed.size_cm};
 }
 
-static void object_to_weed(Object& obj, urVision::weedData& weed)
+static inline void object_to_weed(Object& obj, urVision::weedData& weed)
 {
-    weed.x_cm = obj.x;
-    weed.y_cm = obj.y;
-    weed.z_cm = obj.z;
+    weed.point.x = obj.x;
+    weed.point.y = obj.y;
+    weed.point.z = obj.z;
     weed.size_cm = obj.size;
 }
 
+/* This class exists because the tfBuffer and tfListener need to persist
+ *  Having them as members in a class ensures that this happens, and they don't lose
+ *  their caches. See the tf2 tutorials for more information.
+ */
 class TrackerHolder
 {
 public:
@@ -78,69 +80,122 @@ public:
 
 	~TrackerHolder()
 	{
+        delete tfListener;
+
+        weedTrackerLock.lock();
+        delete p_weedTracker;
+        weedTrackerLock.unlock();
+
+        cropTrackerLock.lock();
+        delete p_cropTracker;
+        cropTrackerLock.unlock();
 	}
 
 public:
 //// MSG Definitions
-    // TODO: WeedData should just be a tf2::Point type
-    void new_weeds_callback(const urVision::weedDataArray::ConstPtr& msg)
+    // Receives camera local coordinates of weeds
+    void newWeedsCallback(const urVision::weedDataArray::ConstPtr& msg)
     {
         // This receives camera local coordinates
         ROS_DEBUG("Weed array received.");
+        
+        std::vector<Object> new_objs;
+        try
+        {
+            // Try finding the camera to world transform
+            geometry_msgs::TransformStamped transformStamped;
 
-        geometry_msgs::TransformStamped transformStamped;
+            geometry_msgs::Point pointIn, pointOut;
 
-        geometry_msgs::Point pointIn, pointOut;
-        // Try finding the latest transform!
-        try{    
             // We want to convert ALL coordinates cameraFrame --> worldFrame
             transformStamped = tfBuffer.lookupTransform(worldFrameName, cameraFrameName, ros::Time(0));
 
-            std::vector<Object> new_objs;
+            // IF the lookup worked!
+            ROS_DEBUG("FOUND transform from cameraFrame to worldFrame.\n");
             for (auto weed : msg->weeds)
             {
                 // Convert weed to global coordinates
-                pointIn.x = weed.x_cm;
-                pointIn.y = weed.y_cm;
-                pointIn.z = weed.z_cm;
-                // TODO:: Figure this out
-                // tf2::doTransform(pointIn, pointOut, transformStamped );
-                weed.x_cm = pointOut.x;
-                weed.y_cm = pointOut.y;
+                pointIn = weed.point;
+                // Perform the transform on the input produced the output, based on the transform we just got
+                tf2::doTransform(pointIn, pointOut, transformStamped );
+                weed.point = pointOut;
 
-                ROS_DEBUG("\tNew weed: x- %f    y- %f      z- %f      size- %f", weed.x_cm, weed.y_cm, weed.z_cm, weed.size_cm);            
+                ROS_DEBUG("\tNew weed: x- %f    y- %f      z- %f      size- %f", weed.point.x, weed.point.y, weed.point.z, weed.size_cm);            
                 new_objs.push_back(weed_to_object(weed));
             }
+        } 
+        catch (tf2::TransformException &ex) 
+        {
+            // Just use local coordinates
+            ROS_DEBUG("Could NOT transform cameraFrame to worldFrame: %s", ex.what());
 
-            weedTrackerLock.lock();
-            p_weedTracker->update(new_objs);
-            weedTrackerLock.unlock();
-
-        } catch (tf2::TransformException &ex) {
-            ROS_WARN("Could NOT transform cameraFrame to worldFrame: %s", ex.what());
+            for (auto weed : msg->weeds)
+            {
+                ROS_DEBUG("\tNew weed: x- %f    y- %f      z- %f      size- %f", weed.point.x, weed.point.y, weed.point.z, weed.size_cm);
+                new_objs.push_back(weed_to_object(weed));
+            }
         }
+
+        // Update the tracker!
+        weedTrackerLock.lock();
+        p_weedTracker->update(new_objs);
+        weedTrackerLock.unlock();
     }
 
-    // This should receive camera-local coordinates using an array of 2 crops (lettuce that are found)
-    void new_crops_callback(const urVision::weedDataArray::ConstPtr& msg)
+    // Receives camera local coordinates of crops
+    void newCropsCallback(const urVision::weedDataArray::ConstPtr& msg)
     {
         ROS_DEBUG("Crop array received.");
         
         std::vector<Object> new_objs;
-
         for (auto weed : msg->weeds)
         {
-            ROS_DEBUG("\tNew crop: x- %f    y- %f      z- %f      size- %f", weed.x_cm, weed.y_cm, weed.z_cm, weed.size_cm);
+            ROS_DEBUG("\tNew crop: x- %f    y- %f      z- %f      size- %f", weed.point.x, weed.point.y, weed.point.z, weed.size_cm);
             new_objs.push_back(weed_to_object(weed));
         }
 
+        std::vector<Object> ready_objects;
+        
         cropTrackerLock.lock();
-        p_cropTracker->update(new_objs);
+            // Add this crop to the tracker!
+            p_cropTracker->update(new_objs);
+            // Get current readyObjects
+            ready_objects = p_cropTracker->getReadyObjects();
         cropTrackerLock.unlock();
+
+        // If we have 2 or more objects
+        if (ready_objects.size() >= 2)
+        {
+            float translationX = 0.0;
+            float translationY = 0.0;
+            float theta = 0;
+            ROS_DEBUG("Updating camera->world transform.");
+            // Calculate current translation and rotation
+
+            // We are ready to establish our ground truth
+            // Broadcast the known transform from current cameraFrame -> worldFrame
+            static tf2_ros::TransformBroadcaster br;
+            geometry_msgs::TransformStamped transformStamped;
+
+            transformStamped.header.stamp = ros::Time::now();
+            transformStamped.header.frame_id = worldFrameName;
+            transformStamped.child_frame_id = cameraFrameName;
+            transformStamped.transform.translation.x = translationX;
+            transformStamped.transform.translation.y = translationY;
+            transformStamped.transform.translation.z = 0.0;
+            tf2::Quaternion q;
+            q.setRPY(0, 0, theta);
+            transformStamped.transform.rotation.x = q.x();
+            transformStamped.transform.rotation.y = q.y();
+            transformStamped.transform.rotation.z = q.z();
+            transformStamped.transform.rotation.w = q.w();
+
+            br.sendTransform(transformStamped);
+        }
     }
 
     // msg callback
-    void new_framerate_callback(const std_msgs::Float32::ConstPtr& msg)
+    void newFramerateCallback(const std_msgs::Float32::ConstPtr& msg)
     {
         weedTrackerLock.lock();
         p_weedTracker->updateFramerate(msg->data);
@@ -246,7 +301,7 @@ public:
         return true;
     }
 
-    bool initialize()
+    bool run()
     {
         if (!readGeneralParameters(m_nodeHandle))
         {
@@ -265,24 +320,18 @@ public:
         cropTrackerLock.unlock();
 
         // Subscriber to the weed publisher (from urVision)
-        ros::Subscriber weedSub = m_nodeHandle.subscribe(weedPublisherName, 1000, &TrackerHolder::new_weeds_callback, this);
-        ros::Subscriber cropSub = m_nodeHandle.subscribe(cropPublisherName, 1000, &TrackerHolder::new_crops_callback, this);
-        ros::Subscriber framerateSub = m_nodeHandle.subscribe(frameratePublisherName, 1, &TrackerHolder::new_framerate_callback, this);
+        ros::Subscriber weedSub = m_nodeHandle.subscribe(weedPublisherName, 1000, &TrackerHolder::newWeedsCallback, this);
+        ros::Subscriber cropSub = m_nodeHandle.subscribe(cropPublisherName, 1000, &TrackerHolder::newCropsCallback, this);
+        ros::Subscriber framerateSub = m_nodeHandle.subscribe(frameratePublisherName, 1, &TrackerHolder::newFramerateCallback, this);
 
         // Services to provide to controller (and vision node)
         ros::ServiceServer fetchWeedService = m_nodeHandle.advertiseService(fetchWeedServiceName, &TrackerHolder::fetch_weed, this);
         ros::ServiceServer queryWeedService = m_nodeHandle.advertiseService(queryWeedServiceName, &TrackerHolder::query_weed, this);
         ros::ServiceServer markUprootedService = m_nodeHandle.advertiseService(markUprootedServiceName, &TrackerHolder::mark_uprooted, this);
 
-        ros::spin();
+	    ros::spin();
 
-        weedTrackerLock.lock();
-        delete p_weedTracker;
-        weedTrackerLock.unlock();
-
-        cropTrackerLock.lock();
-        delete p_cropTracker;
-        cropTrackerLock.unlock();
+        return true;
     }
 
 };
@@ -292,16 +341,19 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "tracker_node");
     ros::NodeHandle nodeHandle("~");
 	
-	// Instantiate imageConverter class
-    TrackerHolder trackerHolder(nodeHandle);
-	// Initialize the imageConverter
-	// This will start the main vision pipeline
-	if (!trackerHolder.initialize())
+	// Instantiate TrackerHolder class
+    TrackerHolder* trackerHolder = new TrackerHolder(nodeHandle);
+	// Initialize the trackerHolder
+    // This will advertise services and subcribe to messages
+	if (!trackerHolder->run())
 	{
-		ROS_ERROR("Error in call to initialize TrackerHolder.");
+		ROS_ERROR("Error in call to run TrackerHolder.");
 		ros::requestShutdown();
 	}
 
 	ros::spin();
+
+    delete trackerHolder;
+
 	return 0;
 }

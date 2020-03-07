@@ -62,6 +62,25 @@ std::vector<Object> ObjectTracker::active_objects()
     return to_ret;
 }
 
+/* active_objects
+ *      @brief returns vector of active objects
+ */
+std::vector<Object> ObjectTracker::getReadyObjects()
+{
+    std::vector<Object> to_ret;
+    to_ret.clear();
+
+    for (auto id: m_id_list)
+    {
+        if (m_status[id] == READY)
+        {
+            to_ret.push_back(m_active_objects[id]);
+        }
+    }
+
+    return to_ret;
+}
+
 /* object_count
  *      @brief returns number of currently tracked objects
  */

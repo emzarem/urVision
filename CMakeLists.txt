@@ -19,9 +19,9 @@ find_package(catkin REQUIRED
     sensor_msgs
     cv_bridge
     std_msgs
-    geometry_msgs
     image_transport
     tf2_ros
+    geometry_msgs
 )
 
 ## Find system libraries
@@ -36,8 +36,8 @@ add_message_files(
 
 generate_messages(
   DEPENDENCIES
-  std_msgs
   geometry_msgs
+  std_msgs
 )
 
 ###################################
@@ -60,8 +60,8 @@ catkin_package(
     std_msgs
     cv_bridge
     image_transport
-    geometry_msgs
     tf2_ros
+    geometry_msgs
 #  DEPENDS
 #    Boost
 )

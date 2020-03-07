@@ -210,13 +210,7 @@ public:
 			}			
 		}
 
-		// Publish weeddaata
-		if (weed_msg.weeds.size() > 0) {
-			weed_msg.header.stamp = ros::Time::now();
-			m_weedDataPublisher.publish(weed_msg);
-		}
-
-		//// Publish the cropList for this frame
+		// Get the cropList for this frame
 		// msg array to publish
 		urVision::weedDataArray crop_msg;
 		vector<KeyPoint> cropList = m_detector->getCropList();
@@ -234,10 +228,17 @@ public:
 			}			
 		}
 
-		// Publish weeddaata
+
+		// Publish cropdata
 		if (crop_msg.weeds.size() > 0) {
 			crop_msg.header.stamp = ros::Time::now();
 			m_cropDataPublisher.publish(crop_msg);
+		}
+
+		// Publish weeddata
+		if (weed_msg.weeds.size() > 0) {
+			weed_msg.header.stamp = ros::Time::now();
+			m_weedDataPublisher.publish(weed_msg);
 		}
 
 		im_with_keypoints = m_detector->greenFrame;
@@ -267,7 +268,7 @@ public:
 				}
 				else
 				{
-					ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", queryWeedSrv.response.weed.x_cm, queryWeedSrv.response.weed.y_cm);
+					ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", queryWeedSrv.response.weed.point.x, queryWeedSrv.response.weed.point.y);
 				}
 			}	
 		}
@@ -277,8 +278,8 @@ public:
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
 
 		// Publish the current otsuThreshold
-		otsuThreshold.data = (float)(m_detector->getWeedThreshold() * m_spatialMapper->sizeScale);
-		m_weedThresholdPublisher.publish(otsuThreshold);
+		// otsuThreshold.data = (float)(m_detector->getWeedThreshold() * m_spatialMapper->sizeScale);
+		// m_weedThresholdPublisher.publish(otsuThreshold);
 
 		// Done processing this frame
 		return;

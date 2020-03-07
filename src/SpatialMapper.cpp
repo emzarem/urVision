@@ -69,9 +69,9 @@ bool SpatialMapper::keypointToReferenceFrame(const KeyPoint& keypoint, urVision:
 
     // The coordinates to return
     // **NOTE**: x is y, y is x
-    retData.x_cm = wcPoint.at<double>(1, 0) / 10; // convert to cm
-    retData.y_cm = wcPoint.at<double>(0, 0) / 10; // convert to cm
-    retData.z_cm = (float)0;
+    retData.point.x = wcPoint.at<double>(1, 0) / 10; // convert to cm
+    retData.point.y = wcPoint.at<double>(0, 0) / 10; // convert to cm
+    retData.point.z = (float)0;
     retData.size_cm = (float)(keypoint.size * sizeScale); 
 
     return true;
@@ -84,7 +84,7 @@ bool SpatialMapper::referenceFrameToKeypoint(const urVision::weedData& weedData,
     // Set up the location of the 
     // Convert points to mm (cm*10)
     // **NOTE**: x is y, y is x
-    Point3f realPoint(weedData.y_cm * 10.0, weedData.x_cm * 10.0, fovCameraHeight); // point in world coordinates
+    Point3f realPoint(weedData.point.y * 10.0, weedData.point.x * 10.0, fovCameraHeight); // point in world coordinates
     std::vector<Point3f> objectPoints;
     objectPoints.push_back(realPoint);
     std::vector<Point2f> projectedPoints;
