@@ -355,6 +355,7 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
             if (!found_update)
             {
                 // Estimate new position
+                estimate_new_position(m_id_list[*itr]);
 
                 // Mark as dissapeared and reset framecount
                 m_disappeared[m_id_list[*itr]]++;
@@ -441,6 +442,19 @@ void ObjectTracker::cleanup_dissapeared()
     }
 }
 
+
+/* estimate_new_position
+ *      @brief Estimate the position based on velocity
+ */
+void ObjectTracker::estimate_new_position(ObjectID id)
+{
+    Object& toUpdate = m_active_objects[id];
+    float dx = toUpdate.x_vel / m_framerate;
+    float dy = toUpdate.y_vel / m_framerate;
+    toUpdate.x += dx;
+    toUpdate.y += dy;
+    toUpdate.timestamp += (double)(1/m_framerate); 
+}
 
 /* update_active_object
  *      @brief Update the values of an active object given a new object

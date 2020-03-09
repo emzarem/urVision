@@ -109,6 +109,7 @@ class ObjectTracker {
         void deregister_object(const ObjectID id);
         void cleanup_dissapeared();
         void update_active_object(ObjectID id, const Object& new_obj);
+        void estimate_new_position(ObjectID id);
         inline float lowpass(float newVal, float oldVal, double dt) {
             return oldVal + (dt/m_lpfTau)*(newVal - oldVal);
         };
