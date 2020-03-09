@@ -38,7 +38,7 @@ float targetFps;
 static inline Object weed_to_object(urVision::weedData& weed, ros::Time stamp)
 {
     /* all values are floats */
-    return {(float)weed.x_cm, (float)weed.y_cm, (float)weed.z_cm, (float)weed.size_cm, (double)stamp.toSec()};
+    return {(float)weed.point.x, (float)weed.point.y, (float)weed.point.z, (float)weed.size_cm, (double)stamp.toSec()};
 }
 
 static inline void object_to_weed(Object& obj, urVision::weedData& weed)
