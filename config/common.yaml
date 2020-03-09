@@ -6,7 +6,8 @@ object_id_publisher: /teleop/object_ids
 weed_data_publisher: /vision/weed_data
 crop_data_publisher: /vision/crop_data
 
-framerate_publisher: /image_converter/framerate
+velocity_publisher: /current_velocity
+framerate_publisher: /current_framerate
 
 weed_threshold_publisher: /vision_target/otsu_threshold
 

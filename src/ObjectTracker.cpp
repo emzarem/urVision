@@ -94,6 +94,26 @@ bool ObjectTracker::getCompletedObjects(std::vector<std::pair<ObjectID, Object>>
     return true;
 }
 
+float ObjectTracker::getXVelocity()
+{
+    size_t listSize = m_xVelAccumulator.size();
+    if (listSize > 0)
+        // return the average from the last update
+        return std::accumulate(m_xVelAccumulator.begin(), m_xVelAccumulator.end(), 0.0) / (float)listSize;
+    
+    return 0;
+}
+
+float ObjectTracker::getYVelocity()
+{
+    size_t listSize = m_yVelAccumulator.size();
+    if (listSize > 0)
+        // return the average from the last update
+        return std::accumulate(m_yVelAccumulator.begin(), m_yVelAccumulator.end(), 0.0) / (float)listSize;
+
+    return 0;
+}
+
 /* object_count
  *      @brief returns number of currently tracked objects
  */
@@ -226,6 +246,9 @@ bool ObjectTracker::top(Object& to_ret)
  */
 void ObjectTracker::update(const std::vector<Object>& new_objs)
 {
+    m_xVelAccumulator.clear();
+    m_yVelAccumulator.clear();
+
     if (new_objs.size() == 0) 
     {
         // If we didn't get any new objects, all are dissapeared
@@ -373,7 +396,6 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
                register_object(new_objs[x]);
            }
         }
-
     }
 
     /* 4. Update missing objects */
@@ -384,7 +406,12 @@ void ObjectTracker::updateFramerate(float framerate)
 {
     m_max_dissapeared_frms = (int)(floor(framerate * m_maxTimeDisappeared));
     m_min_framecount = (int)(ceil(framerate * m_minTimeValid));
-    ROS_DEBUG("Tracker update framerate -- maxDisappearedFrms == %i; minValidFrames == %i", m_max_dissapeared_frms, m_min_framecount);
+}
+
+void ObjectTracker::updateVelocity(float xVelocity, float yVelocity)
+{
+    m_xVelocity = xVelocity;
+    m_yVelocity = yVelocity;
 }
 
 /* register_object
@@ -449,8 +476,9 @@ void ObjectTracker::cleanup_dissapeared()
 void ObjectTracker::estimate_new_position(ObjectID id)
 {
     Object& toUpdate = m_active_objects[id];
-    float dx = toUpdate.x_vel / m_framerate;
-    float dy = toUpdate.y_vel / m_framerate;
+    // Use global velocity estimate!
+    float dx = m_xVelocity / m_framerate;
+    float dy = m_yVelocity / m_framerate;
     toUpdate.x += dx;
     toUpdate.y += dy;
     toUpdate.timestamp += (double)(1/m_framerate); 
@@ -472,6 +500,10 @@ void ObjectTracker::update_active_object(ObjectID id, const Object& new_obj)
     // LPF
     toUpdate.x_vel = lowpass(new_x_vel, old.x_vel, dt);
     toUpdate.y_vel = lowpass(new_y_vel, old.y_vel, dt);
+
+    // Push to the accumulators
+    m_xVelAccumulator.push_back(toUpdate.x_vel);
+    m_yVelAccumulator.push_back(toUpdate.y_vel);
 }
 
 

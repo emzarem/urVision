@@ -87,6 +87,9 @@ class ObjectTracker {
         // Gets COMPLETED objects and IDS
         bool getCompletedObjects(std::vector<std::pair<ObjectID, Object>>& ret_objs);
 
+        float getXVelocity();
+        float getYVelocity();
+
         // Sorted operations
         bool top(Object& to_ret);
 
@@ -103,6 +106,7 @@ class ObjectTracker {
         void update(const std::vector<Object>& new_objs);
 
         void updateFramerate(float framerate);
+        void updateVelocity(float xVelocity, float yVelocity);
 
     private:
         ObjectID register_object(const Object& obj);
@@ -124,13 +128,22 @@ class ObjectTracker {
         uint32_t m_min_framecount;
 
         float m_framerate;
-
         float m_maxTimeDisappeared, m_minTimeValid;
 
-       ObjectType m_type;
-        /* For Low pass filtering velocity */
-        static constexpr float m_lpfTau = 1.0/5; // 5 Hz cutoff
+        // Object type
+        ObjectType m_type;
   
+        /* For Low pass filtering velocity */
+        static constexpr float m_lpfTau = 1.0/2; // 5 Hz cutoff
+  
+        std::vector<float> m_xVelAccumulator;
+        std::vector<float> m_yVelAccumulator;
+
+        // Global velocity to be used for all objects
+        float m_xVelocity;
+        float m_yVelocity;
+
+        /* Main tracker lists */
         std::map<ObjectID, Object> m_active_objects;
 
         /* Each registered object will have an associated:

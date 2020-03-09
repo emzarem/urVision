@@ -8,7 +8,7 @@
 #include <urGovernor/MarkUprooted.h>
 #include <urVision/weedDataArray.h>
 #include <std_msgs/Float32.h>
-
+#include <geometry_msgs/Vector3.h>
 
 #include <vector>
 #include <mutex>
@@ -19,11 +19,15 @@ std::mutex weedTrackerLock;
 static ObjectTracker* p_cropTracker;
 std::mutex cropTrackerLock;
 
+// System velocity Publisher
+ros::Publisher velocityPublisher;
+
 // Parameters to read from configs
 std::string weedPublisherName;
 std::string cropPublisherName;
 
 std::string frameratePublisherName;
+std::string velocityPublisherName;
 
 std::string fetchWeedServiceName;
 std::string queryWeedServiceName;
@@ -169,9 +173,19 @@ void new_crop_callback(const urVision::weedDataArray::ConstPtr& msg)
         new_objs.push_back(weed_to_object(weed, msg->header.stamp));
     }
 
+    // Publish the speed
+    geometry_msgs::Vector3 currentVelocity;
+    currentVelocity.z = 0;
+
     cropTrackerLock.lock();
+    // Update the tracker with current objects
     p_cropTracker->update(new_objs);
+    // Get the most recent velocity
+    currentVelocity.x = p_cropTracker->getXVelocity();
+    currentVelocity.y = p_cropTracker->getYVelocity();
     cropTrackerLock.unlock();
+
+    velocityPublisher.publish(currentVelocity);
 }
 
 // msg callback
@@ -180,6 +194,22 @@ void new_framerate_callback(const std_msgs::Float32::ConstPtr& msg)
     weedTrackerLock.lock();
     p_weedTracker->updateFramerate(msg->data);
     weedTrackerLock.unlock();
+
+    cropTrackerLock.lock();
+    p_cropTracker->updateFramerate(msg->data);
+    cropTrackerLock.unlock();
+}
+
+// msg callback
+void new_velocity_callback(const geometry_msgs::Vector3::ConstPtr& msg)
+{
+    weedTrackerLock.lock();
+    p_weedTracker->updateVelocity(msg->x, msg->y);
+    weedTrackerLock.unlock();
+
+    cropTrackerLock.lock();
+    p_cropTracker->updateVelocity(msg->x, msg->y);
+    cropTrackerLock.unlock();
 }
 
 // General parameters for this node
@@ -188,7 +218,8 @@ bool readGeneralParameters(ros::NodeHandle nodeHandle)
     if (!nodeHandle.getParam("weed_data_publisher", weedPublisherName)) return false;
     if (!nodeHandle.getParam("crop_data_publisher", cropPublisherName)) return false;
     if (!nodeHandle.getParam("framerate_publisher", frameratePublisherName)) return false;
-    
+    if (!nodeHandle.getParam("velocity_publisher", velocityPublisherName)) return false;
+
     if (!nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
     if (!nodeHandle.getParam("query_weeds_service", queryWeedServiceName)) return false;
     if (!nodeHandle.getParam("mark_uprooted_service", markUprootedServiceName)) return false;
@@ -224,12 +255,16 @@ int main(int argc, char** argv)
     p_cropTracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid, ObjectType::CROP);
     cropTrackerLock.unlock();
 
-    // Subscriber to the weed publisher (from urVision)
+    // Publishers
+	velocityPublisher = nodeHandle.advertise<geometry_msgs::Vector3>(velocityPublisherName, 1);
+
+    // Subscribers
     ros::Subscriber weedSub = nodeHandle.subscribe(weedPublisherName, 1000, new_weed_callback);
     ros::Subscriber cropSub = nodeHandle.subscribe(cropPublisherName, 1000, new_crop_callback);
     ros::Subscriber framerateSub = nodeHandle.subscribe(frameratePublisherName, 1, new_framerate_callback);
+    ros::Subscriber velocitySub = nodeHandle.subscribe(velocityPublisherName, 1, new_velocity_callback);
 
-    // Services to provide to controller (and vision node)
+    // Services
     ros::ServiceServer fetchWeedService = nodeHandle.advertiseService(fetchWeedServiceName, fetch_weed);
     ros::ServiceServer queryWeedService = nodeHandle.advertiseService(queryWeedServiceName, query_weeds);
     ros::ServiceServer markUprootedService = nodeHandle.advertiseService(markUprootedServiceName, mark_uprooted);
