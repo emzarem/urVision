@@ -18,12 +18,12 @@ fov_height_cm: 61
 # Filtering configs #
 #####################
 # Any detected objects smaller than this will not be considered
-min_weed_size_cm: 3
+min_weed_size_cm: 2.5
 # Any detected objects larger than this will not be considered
 max_weed_size_cm: 1000
 
 # Objects within this distance tolerance will be marked as the same object
-filter_distance_tolerance_cm: 10
+filter_distance_tolerance_cm: 7
 
 # default thresholds uses for filtering
 # MAKE SURE THESE ARE THE SAME
@@ -37,9 +37,9 @@ blur_kernel_size: 15
 
 # Color thresholding
 # Hue 30-90 should be green ...
-low_hue: 50
-low_sat: 60
-low_value: 60
+low_hue: 45
+low_sat: 55
+low_value: 55
 high_hue: 90
 
 # Morph operations
@@ -50,7 +50,7 @@ morph_closing_iterations: 4
 # Blob detection
 min_circularity: 0.30
 min_convexity: 0.20
-min_inertia_ratio: 0.20
+min_inertia_ratio: 0.15
 
 # Plant filter decision accumulators
 min_accumulator_size: 10

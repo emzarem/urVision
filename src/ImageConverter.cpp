@@ -65,7 +65,7 @@ class ImageConverter
 
 	VisionParams m_visionParams;
 
-	int maxWeedSizeCm, minWeedSizeCm, defaultWeedSizeCm, defaultCropSizeCm, filterDistanceTolCm;
+	float maxWeedSizeCm, minWeedSizeCm, defaultWeedSizeCm, defaultCropSizeCm, filterDistanceTolCm;
 
 	// For performance logging
 	ros::WallTime start_, end_;

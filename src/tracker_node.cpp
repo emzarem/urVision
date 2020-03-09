@@ -204,7 +204,7 @@ int main(int argc, char** argv)
 
     // Initialize cropTracker
     cropTrackerLock.lock();
-    p_cropTracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid);
+    p_cropTracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid, ObjectType::CROP);
     cropTrackerLock.unlock();
 
     // Subscriber to the weed publisher (from urVision)
