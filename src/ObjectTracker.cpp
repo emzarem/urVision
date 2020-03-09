@@ -323,7 +323,8 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
                     // This ensures the first found object is stored (it should be closest in dist_)
                     if (!found_update)
                     {
-                        m_active_objects[m_id_list[*itr]] = new_objs[*sub_itr];
+                        update_active_object(m_id_list[*itr], new_objs[*sub_itr]);
+                        //m_active_objects[m_id_list[*itr]] = new_objs[*sub_itr];
                         m_framecount[m_id_list[*itr]]++;
                         // Mark as ready if framecount is appropriate
                         if (m_status[m_id_list[*itr]] == DEFAULT && m_framecount[m_id_list[*itr]] >= m_min_framecount)
