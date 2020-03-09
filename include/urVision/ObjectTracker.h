@@ -75,7 +75,7 @@ typedef float Distance;
  */
 class ObjectTracker {
     public:
-        ObjectTracker(Distance distTol, float targetFps, float maxTimeDisappeared, float minTimeValid, ObjectType trackerType = ObjectType::WEED);
+        ObjectTracker(Distance distTol, float velLpfCutoff, float targetFps, float maxTimeDisappeared, float minTimeValid, ObjectType trackerType = ObjectType::WEED);
         ~ObjectTracker();
        
         // Getters
@@ -134,7 +134,7 @@ class ObjectTracker {
         ObjectType m_type;
   
         /* For Low pass filtering velocity */
-        static constexpr float m_lpfTau = 1.0/2; // 5 Hz cutoff
+        float m_lpfTau;
   
         std::vector<float> m_xVelAccumulator;
         std::vector<float> m_yVelAccumulator;

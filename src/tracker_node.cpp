@@ -38,6 +38,7 @@ float maxTimeDisappeared;
 float minTimeValid;
 
 float targetFps;
+float velLpfCutoff;
 
 static inline Object weed_to_object(urVision::weedData& weed, ros::Time stamp)
 {
@@ -228,6 +229,7 @@ bool readGeneralParameters(ros::NodeHandle nodeHandle)
     if (!nodeHandle.getParam("max_time_disappeared", maxTimeDisappeared)) return false;
     if (!nodeHandle.getParam("min_time_valid", minTimeValid)) return false;
     if (!nodeHandle.getParam("/target_fps", targetFps)) return false;
+    if (!nodeHandle.getParam("vel_lpf_cutoff", velLpfCutoff)) return false;
 
     if (!nodeHandle.getParam("distance_tolerance", distanceTolerance)) return false;
     
@@ -247,12 +249,12 @@ int main(int argc, char** argv)
 
     // Initialize weedTracker
     weedTrackerLock.lock();
-    p_weedTracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid);
+    p_weedTracker = new ObjectTracker(distanceTolerance, velLpfCutoff, targetFps, maxTimeDisappeared, minTimeValid);
     weedTrackerLock.unlock();
 
     // Initialize cropTracker
     cropTrackerLock.lock();
-    p_cropTracker = new ObjectTracker(distanceTolerance, targetFps, maxTimeDisappeared, minTimeValid, ObjectType::CROP);
+    p_cropTracker = new ObjectTracker(distanceTolerance, velLpfCutoff, targetFps, maxTimeDisappeared, minTimeValid, ObjectType::CROP);
     cropTrackerLock.unlock();
 
     // Publishers

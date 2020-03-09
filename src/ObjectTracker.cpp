@@ -33,8 +33,8 @@ static Distance euclidean_distance(const Object& a, const Object& b)
  *      @param max_dissapeared_frms : 
  *              max number of missed frames before object removed
  */
-ObjectTracker::ObjectTracker(Distance distTol, float targetFps, float maxTimeDisappeared, float minTimeValid, ObjectType trackerType) :
-    m_dist_tol(distTol), m_maxTimeDisappeared(maxTimeDisappeared), m_minTimeValid(minTimeValid), m_framerate(targetFps), m_type(trackerType)
+ObjectTracker::ObjectTracker(Distance distTol, float velLpfCutoff, float targetFps, float maxTimeDisappeared, float minTimeValid, ObjectType trackerType) :
+    m_dist_tol(distTol), m_lpfTau(1.0/velLpfCutoff), m_maxTimeDisappeared(maxTimeDisappeared), m_minTimeValid(minTimeValid), m_framerate(targetFps), m_type(trackerType)
 {
     m_max_dissapeared_frms = (int)(floor(targetFps * m_maxTimeDisappeared));
     m_min_framecount = (int)(ceil(targetFps * m_minTimeValid));

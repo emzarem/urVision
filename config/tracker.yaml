@@ -5,3 +5,6 @@ min_time_valid: 1.5
 
 # Distance tolerance for tracking between frames (in cm)
 distance_tolerance: 8
+
+# Low-pass filter cut-off for velocity updates (Hz)
+vel_lpf_cutoff: 5.0
