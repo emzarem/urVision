@@ -68,7 +68,24 @@ bool ObjectTracker::getReadyObjects(std::vector<std::pair<ObjectID, Object>>& re
 
     for (auto id: m_id_list)
     {
-        if (m_status[id] == READY)
+        // IF object is READY or IN_PROGRESS
+        if (m_status[id] == READY || m_status[id] == IN_PROGRESS)
+        {
+            ret_objs.push_back(std::make_pair(id, m_active_objects[id]));
+        }
+    }
+
+    return true;
+}
+
+bool ObjectTracker::getCompletedObjects(std::vector<std::pair<ObjectID, Object>>& ret_objs)
+{
+    ret_objs.clear();
+
+    for (auto id: m_id_list)
+    {
+        // IF COMPLETED and currently  IN FRAME
+        if (m_status[id] == COMPLETED && m_framecount[id] >= m_min_framecount)
         {
             ret_objs.push_back(std::make_pair(id, m_active_objects[id]));
         }
@@ -111,6 +128,25 @@ bool ObjectTracker::markUprooted(ObjectID uprootedId, bool success)
     return false;
 }
 
+// Gets an object by it's specific ID
+bool ObjectTracker::getObjectByID(Object& to_ret, ObjectID objectID)
+{
+    if (object_count() == 0)
+        return false;
+
+    auto itr =  m_active_objects.find(objectID);
+
+    if (itr == m_active_objects.end()) 
+    {
+        return false;
+    } 
+    else 
+    {
+        to_ret = itr->second;
+        return true;
+    }
+}
+
 /* topValidAndUproot
  *      @brief returns the largest Object with other valid parameters (as defined by operator>)
  *                  and marks it as uprooted
@@ -138,25 +174,6 @@ bool ObjectTracker::topValidAndUproot(Object& to_ret, ObjectID& ret_id)
     }
 
     return false;
-}
-
-// Gets an object by it's specific ID
-bool ObjectTracker::getObjectByID(Object& to_ret, ObjectID objectID)
-{
-    if (object_count() == 0)
-        return false;
-
-    auto itr =  m_active_objects.find(objectID);
-
-    if (itr == m_active_objects.end()) 
-    {
-        return false;
-    } 
-    else 
-    {
-        to_ret = itr->second;
-        return true;
-    }
 }
 
 /* topValid
@@ -348,6 +365,8 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
             {
                 m_disappeared[m_id_list[*itr]]++;
                 m_framecount[m_id_list[*itr]] = 0;
+                if (m_status[m_id_list[*itr]] == READY)
+                    m_status[m_id_list[*itr]] = DEFAULT;
             }
         }
 

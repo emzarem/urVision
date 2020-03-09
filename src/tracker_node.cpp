@@ -92,22 +92,32 @@ bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
 // query_weeds_service
 bool query_weeds(urVision::QueryWeeds::Request &req, urVision::QueryWeeds::Response &res)
 {
-    std::vector<std::pair<ObjectID, Object>> objects;
+    std::vector<std::pair<ObjectID, Object>> readyObjects;
+    std::vector<std::pair<ObjectID, Object>> completedObjects;
     bool retValue = false;
-    res.pairs.clear();
+    res.ready_list.clear();
+    res.completed_list.clear();
 
     weedTrackerLock.lock();
-    retValue = p_weedTracker->getReadyObjects(objects);
+    retValue = p_weedTracker->getReadyObjects(readyObjects);
+    retValue = p_weedTracker->getCompletedObjects(completedObjects);
     weedTrackerLock.unlock();
 
     if (retValue)
     {
-        for (auto it = objects.begin(); it != objects.end(); it++)
+        for (auto it = readyObjects.begin(); it != readyObjects.end(); it++)
         {
             urVision::WeedPair weedPair;
             weedPair.id = it->first;
             object_to_weed(it->second, weedPair.weed);
-            res.pairs.push_back(weedPair);
+            res.ready_list.push_back(weedPair);
+        }
+        for (auto it = completedObjects.begin(); it != completedObjects.end(); it++)
+        {
+            urVision::WeedPair weedPair;
+            weedPair.id = it->first;
+            object_to_weed(it->second, weedPair.weed);
+            res.completed_list.push_back(weedPair);
         }
     }
 

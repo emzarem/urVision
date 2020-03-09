@@ -124,8 +124,8 @@ public:
 	{
 		// Initialize static data
 		static Mat currentFrame;
-		static Mat im_with_keypoints;
-		static Mat im_with_obj_ids;
+		static Mat objectFrame;
+		static Mat objectIdframe;
 		static std_msgs::Float32 otsuThreshold;
 
 		// For calling back to tracker node show current valid weed.
@@ -243,54 +243,68 @@ public:
 			m_cropDataPublisher.publish(crop_msg);
 		}
 
-		im_with_keypoints = m_detector->greenFrame;
+		objectFrame = m_detector->greenFrame;
+		objectIdframe = currentFrame;
 		// Draw weeds
 		for (auto it = weedList.begin(); it != weedList.end(); it++)
 		{
-			cv::circle(im_with_keypoints, cv::Point(it->pt.x, it->pt.y), it->size / 2, Scalar(0, 0, 255), 5, 8);
+			cv::circle(objectFrame, cv::Point(it->pt.x, it->pt.y), it->size / 2, Scalar(0, 0, 255), 5, 8);
+			cv::circle(objectIdframe, cv::Point(it->pt.x, it->pt.y), it->size / 2, Scalar(0, 0, 255), 5, 8);
 		}
 		// Draw crops
 		for (auto it = cropList.begin(); it != cropList.end(); it++)
 		{
-			cv::circle(im_with_keypoints, cv::Point(it->pt.x, it->pt.y), it->size / 2, Scalar(0, 255, 0), 5, 8);
+			cv::circle(objectFrame, cv::Point(it->pt.x, it->pt.y), it->size / 2, Scalar(0, 255, 0), 5, 8);
+			cv::circle(objectIdframe, cv::Point(it->pt.x, it->pt.y), it->size / 2, Scalar(0, 255, 0), 5, 8);		
 		}
 
 		// Publish the output image with keypoints, bounding boxes, etc.
-		cv_ptr->image = im_with_keypoints;
+		cv_ptr->image = objectFrame;
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
 
 		//// Show the current valid weed (next to be harvested) if there is one
-		im_with_obj_ids = im_with_keypoints;
+		KeyPoint imagePoint;
 		if (m_queryWeedsClient.call(queryWeedSrv))
 		{
-			auto pairList = queryWeedSrv.response.pairs;
-			for (auto it = pairList.begin(); it != pairList.end(); it++)
-			{
-				KeyPoint imagePoint;
-				
+			auto readyList = queryWeedSrv.response.ready_list;
+			for (auto it = readyList.begin(); it != readyList.end(); it++)
+			{			
 				// Map back to image coordinates
 				if (m_spatialMapper->referenceFrameToKeypoint(it->weed, imagePoint))
 				{
 					// On the top one only
-					if (it == pairList.begin())
+					if (it == readyList.begin())
 					{
 						// Draw red crosshair on next weed to target!
-						cv::drawMarker(im_with_obj_ids, cv::Point(imagePoint.pt.x, imagePoint.pt.y),  
+						cv::drawMarker(objectIdframe, cv::Point(imagePoint.pt.x, imagePoint.pt.y),  
 										cv::Scalar(0, 0, 255), MARKER_CROSS, imagePoint.size*2, 5);
 					}
 
-					// Draw object id on image1
-					cv::putText(im_with_obj_ids, std::to_string(it->id), cv::Point(imagePoint.pt.x + imagePoint.size / 4, imagePoint.pt.y + imagePoint.size / 4), 
-								cv::FONT_HERSHEY_DUPLEX, 3, Scalar(128,0,128), 3, 8, true);
+					// Draw object id on image (in purple)
+					cv::putText(objectIdframe, std::to_string(it->id), 
+									cv::Point(imagePoint.pt.x + imagePoint.size / 4, imagePoint.pt.y - imagePoint.size / 4), 
+									cv::FONT_HERSHEY_DUPLEX, 3, Scalar(192,0,192), 3);
+				} else {
+					ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", it->weed.point.x, it->weed.point.y);
 				}
-				else
+			}			
+			auto completedList = queryWeedSrv.response.completed_list;
+			for (auto it = completedList.begin(); it != completedList.end(); it++)
+			{
+				// Map back to image coordinates
+				if (m_spatialMapper->referenceFrameToKeypoint(it->weed, imagePoint))
 				{
+					// Draw object id on image (in white)
+					cv::putText(objectIdframe, std::to_string(it->id), 
+									cv::Point(imagePoint.pt.x + imagePoint.size / 4, imagePoint.pt.y - imagePoint.size / 4), 
+									cv::FONT_HERSHEY_DUPLEX, 3, Scalar(255,255,255), 3);
+				} else {
 					ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", it->weed.point.x, it->weed.point.y);
 				}
 			}
 		}
 		
-		cv_ptr->image = im_with_obj_ids;
+		cv_ptr->image = objectIdframe;
 		m_objIdPublisher.publish(cv_ptr->toImageMsg());
 
 		// Publish the current otsuThreshold

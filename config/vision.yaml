@@ -50,7 +50,7 @@ morph_closing_iterations: 4
 # Blob detection
 min_circularity: 0.20
 min_convexity: 0.20
-min_inertia_ratio: 0.20
+min_inertia_ratio: 0.30
 
 # Plant filter decision accumulators
 min_accumulator_size: 10
