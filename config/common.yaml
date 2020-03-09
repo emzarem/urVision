@@ -1,10 +1,12 @@
 # Common attributes (used by both urVision and urGovernor)
 
-image_publisher: /image_converter/output_video
+image_publisher: /teleop/object_detection
+object_id_publisher: /teleop/object_ids
+
 weed_data_publisher: /vision/weed_data
 crop_data_publisher: /vision/crop_data
-framerate_publisher: /image_converter/framerate
 
+framerate_publisher: /image_converter/framerate
 
 weed_threshold_publisher: /vision_target/otsu_threshold
 
@@ -15,4 +17,4 @@ fetch_weed_service: /fetch_weed_service
 mark_uprooted_service: /mark_uprooted_service
 
 # Queries the top valid weed (does not mark as being processed)
-query_weed_service: /query_weed_service
+query_weeds_service: /query_weeds_service

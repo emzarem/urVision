@@ -23,6 +23,8 @@ max_weed_size_cm: 100
 default_weed_size_threshold_cm: 8
 default_crop_size_threshold_cm: 8
 
+filter_distance_tolerance_cm: 7
+
 ############################
 # Image processing configs #
 ############################

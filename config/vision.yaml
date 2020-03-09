@@ -6,7 +6,7 @@ show_img_window: false
 # Camera calibration file
 camera_cal_file: opencv_camera_properties.yaml
 # Publishing rate for the REAL framerate
-frames_log_interval: 30
+frames_log_interval: 20
 
 # Camera frame parameters (ground projection)
 fov_camera_distance_cm: 65
@@ -48,9 +48,9 @@ morph_opening_iterations: 1
 morph_closing_iterations: 4
 
 # Blob detection
-min_circularity: 0.30
+min_circularity: 0.20
 min_convexity: 0.20
-min_inertia_ratio: 0.15
+min_inertia_ratio: 0.20
 
 # Plant filter decision accumulators
 min_accumulator_size: 10

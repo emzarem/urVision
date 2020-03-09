@@ -3,6 +3,7 @@
 #include "urVision/ObjectTracker.h"
 
 // Srv and msg types
+#include <urVision/QueryWeeds.h>
 #include <urGovernor/FetchWeed.h>
 #include <urGovernor/MarkUprooted.h>
 #include <urVision/weedDataArray.h>
@@ -40,7 +41,7 @@ static inline Object weed_to_object(urVision::weedData& weed)
     return {(float)weed.point.x, (float)weed.point.y, (float)weed.point.z, (float)weed.size_cm};
 }
 
-static void object_to_weed(Object& obj, urVision::weedData& weed)
+static inline void object_to_weed(Object& obj, urVision::weedData& weed)
 {
     weed.point.x = obj.x;
     weed.point.y = obj.y;
@@ -88,20 +89,26 @@ bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
     return retValue;
 }
 
-// query_weed_service
-bool query_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Response &res)
+// query_weeds_service
+bool query_weeds(urVision::QueryWeeds::Request &req, urVision::QueryWeeds::Response &res)
 {
-    Object top_valid_obj;
+    std::vector<std::pair<ObjectID, Object>> objects;
     bool retValue = false;
+    res.pairs.clear();
 
     weedTrackerLock.lock();
-    retValue = p_weedTracker->topValid(top_valid_obj);
+    retValue = p_weedTracker->getReadyObjects(objects);
     weedTrackerLock.unlock();
 
     if (retValue)
     {
-        // Set response data to include weed fetched from the top
-        object_to_weed(top_valid_obj, res.weed);
+        for (auto it = objects.begin(); it != objects.end(); it++)
+        {
+            urVision::WeedPair weedPair;
+            weedPair.id = it->first;
+            object_to_weed(it->second, weedPair.weed);
+            res.pairs.push_back(weedPair);
+        }
     }
 
     return retValue;
@@ -173,7 +180,7 @@ bool readGeneralParameters(ros::NodeHandle nodeHandle)
     if (!nodeHandle.getParam("framerate_publisher", frameratePublisherName)) return false;
     
     if (!nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
-    if (!nodeHandle.getParam("query_weed_service", queryWeedServiceName)) return false;
+    if (!nodeHandle.getParam("query_weeds_service", queryWeedServiceName)) return false;
     if (!nodeHandle.getParam("mark_uprooted_service", markUprootedServiceName)) return false;
 
 
@@ -214,7 +221,7 @@ int main(int argc, char** argv)
 
     // Services to provide to controller (and vision node)
     ros::ServiceServer fetchWeedService = nodeHandle.advertiseService(fetchWeedServiceName, fetch_weed);
-    ros::ServiceServer queryWeedService = nodeHandle.advertiseService(queryWeedServiceName, query_weed);
+    ros::ServiceServer queryWeedService = nodeHandle.advertiseService(queryWeedServiceName, query_weeds);
     ros::ServiceServer markUprootedService = nodeHandle.advertiseService(markUprootedServiceName, mark_uprooted);
 
     ros::spin();

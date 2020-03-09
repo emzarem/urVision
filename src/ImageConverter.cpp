@@ -14,7 +14,7 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Header.h>
 
-#include <urGovernor/FetchWeed.h>
+#include <urVision/QueryWeeds.h>
 
 const std::string OPENCV_WINDOW = "urVision Window";
 
@@ -31,6 +31,7 @@ class ImageConverter
 
 	// Publishers
 	image_transport::Publisher m_imagePublisher;  
+	image_transport::Publisher m_objIdPublisher;  
 	ros::Publisher m_weedDataPublisher;
 	ros::Publisher m_cropDataPublisher;
 
@@ -38,13 +39,14 @@ class ImageConverter
 	ros::Publisher m_frameratePublisher;
 
 	// Service clients
-	ros::ServiceClient m_queryWeedClient;
+	ros::ServiceClient m_queryWeedsClient;
 
 	// For topic names
 	std::string m_cameraName;
 	std::string m_imageTopic;
 
 	std::string m_imagePublisherName;
+	std::string m_objIdPublisherName;
 	std::string m_weedDataPublisherName;
 	std::string m_cropDataPublisherName;
 
@@ -100,6 +102,7 @@ public:
 		m_imageSubscriber = m_imageTransport.subscribe(std::string(m_cameraName + m_imageTopic), 1, &ImageConverter::processImage, this);
 
 		m_imagePublisher = m_imageTransport.advertise(m_imagePublisherName, 1);
+		m_objIdPublisher = m_imageTransport.advertise(m_objIdPublisherName, 1);
 
 	  	m_weedDataPublisher = m_nodeHandle.advertise<urVision::weedDataArray>(m_weedDataPublisherName, 1);
 	  	m_cropDataPublisher = m_nodeHandle.advertise<urVision::weedDataArray>(m_cropDataPublisherName, 1);
@@ -108,8 +111,7 @@ public:
 
 	  	m_frameratePublisher = m_nodeHandle.advertise<std_msgs::Float32>(m_frameratePublisherName, 1);
 
-
-		m_queryWeedClient = m_nodeHandle.serviceClient<urGovernor::FetchWeed>(queryWeedServiceName);
+		m_queryWeedsClient = m_nodeHandle.serviceClient<urVision::QueryWeeds>(queryWeedServiceName);
 
 		ROS_INFO("ImageConverter Pipeline started successfully!");
 
@@ -123,10 +125,11 @@ public:
 		// Initialize static data
 		static Mat currentFrame;
 		static Mat im_with_keypoints;
+		static Mat im_with_obj_ids;
 		static std_msgs::Float32 otsuThreshold;
 
 		// For calling back to tracker node show current valid weed.
-    	urGovernor::FetchWeed queryWeedSrv;
+    	urVision::QueryWeeds queryWeedSrv;
 		queryWeedSrv.request.caller = 1; // we don't need this
 
 		// Update framenumber
@@ -252,33 +255,47 @@ public:
 			cv::circle(im_with_keypoints, cv::Point(it->pt.x, it->pt.y), it->size / 2, Scalar(0, 255, 0), 5, 8);
 		}
 
-		//// Show the current valid weed (next to be harvested) if there is one
-		{
-			if (m_queryWeedClient.call(queryWeedSrv))
-			{
-				KeyPoint nextValid;
-				
-				// Map back to image coordinates
-				if (m_spatialMapper->referenceFrameToKeypoint(queryWeedSrv.response.weed, nextValid))
-				{
-					// Draw red crosshair on next weed to target!
-					cv::drawMarker(im_with_keypoints, cv::Point(nextValid.pt.x, nextValid.pt.y),  
-									cv::Scalar(0, 0, 255), MARKER_CROSS, nextValid.size*2, 5);
-				}
-				else
-				{
-					ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", queryWeedSrv.response.weed.point.x, queryWeedSrv.response.weed.point.y);
-				}
-			}	
-		}
-
 		// Publish the output image with keypoints, bounding boxes, etc.
 		cv_ptr->image = im_with_keypoints;
 		m_imagePublisher.publish(cv_ptr->toImageMsg());
 
+		//// Show the current valid weed (next to be harvested) if there is one
+		im_with_obj_ids = im_with_keypoints;
+		if (m_queryWeedsClient.call(queryWeedSrv))
+		{
+			auto pairList = queryWeedSrv.response.pairs;
+			for (auto it = pairList.begin(); it != pairList.end(); it++)
+			{
+				KeyPoint imagePoint;
+				
+				// Map back to image coordinates
+				if (m_spatialMapper->referenceFrameToKeypoint(it->weed, imagePoint))
+				{
+					// On the top one only
+					if (it == pairList.begin())
+					{
+						// Draw red crosshair on next weed to target!
+						cv::drawMarker(im_with_obj_ids, cv::Point(imagePoint.pt.x, imagePoint.pt.y),  
+										cv::Scalar(0, 0, 255), MARKER_CROSS, imagePoint.size*2, 5);
+					}
+
+					// Draw object id on image1
+					cv::putText(im_with_obj_ids, std::to_string(it->id), cv::Point(imagePoint.pt.x + imagePoint.size / 4, imagePoint.pt.y + imagePoint.size / 4), 
+								cv::FONT_HERSHEY_DUPLEX, 3, Scalar(128,0,128), 3, 8, true);
+				}
+				else
+				{
+					ROS_ERROR("[REVERSE] Spatial Mapping could not be performed on weed (from tracker) (x,y)=(%f,%f)", it->weed.point.x, it->weed.point.y);
+				}
+			}
+		}
+		
+		cv_ptr->image = im_with_obj_ids;
+		m_objIdPublisher.publish(cv_ptr->toImageMsg());
+
 		// Publish the current otsuThreshold
-		otsuThreshold.data = (float)(m_detector->getWeedThreshold() * m_spatialMapper->sizeScale);
-		m_weedThresholdPublisher.publish(otsuThreshold);
+		// otsuThreshold.data = (float)(m_detector->getWeedThreshold() * m_spatialMapper->sizeScale);
+		// m_weedThresholdPublisher.publish(otsuThreshold);
 
 		// Done processing this frame
 		return;
@@ -289,7 +306,10 @@ public:
 	{
 		if (!m_nodeHandle.getParam("camera_name", m_cameraName)) return false;
 		if (!m_nodeHandle.getParam("image_topic", m_imageTopic)) return false;
+		
 		if (!m_nodeHandle.getParam("image_publisher", m_imagePublisherName)) return false;
+		if (!m_nodeHandle.getParam("object_id_publisher", m_objIdPublisherName)) return false;
+
 		if (!m_nodeHandle.getParam("weed_data_publisher", m_weedDataPublisherName)) return false;
 		if (!m_nodeHandle.getParam("crop_data_publisher", m_cropDataPublisherName)) return false;
 
@@ -299,7 +319,7 @@ public:
 
 		if (!m_nodeHandle.getParam("frames_log_interval", m_frameLogInterval)) return false;
 
-		if (!m_nodeHandle.getParam("query_weed_service", queryWeedServiceName)) return false;
+		if (!m_nodeHandle.getParam("query_weeds_service", queryWeedServiceName)) return false;
 
 		return true;
 	}

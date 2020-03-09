@@ -26,11 +26,18 @@ find_package(catkin REQUIRED
 ## Find system libraries
 #find_package(Eigen3 REQUIRED)
 #find_package(Boost REQUIRED)
+add_service_files(
+  DIRECTORY
+  srv
+  FILES
+  QueryWeeds.srv
+)
 
 add_message_files(
     FILES
     weedData.msg
     weedDataArray.msg
+    WeedPair.msg
 )
 
 generate_messages(

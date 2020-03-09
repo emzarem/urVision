@@ -77,6 +77,8 @@ class ObjectTracker {
         std::vector<Object> active_objects();
         size_t object_count();
         
+        bool getReadyObjects(std::vector<std::pair<ObjectID, Object>>& ret_objs);
+
         // Sorted operations
         bool top(Object& to_ret);
 
