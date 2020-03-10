@@ -88,7 +88,7 @@ bool ObjectTracker::getCompletedObjects(std::vector<std::pair<ObjectID, Object>>
     for (auto id: m_id_list)
     {
         // IF COMPLETED and currently  IN FRAME
-        if (m_status[id] == COMPLETED)
+        if (m_status[id] == COMPLETED && m_framecount[id] >= m_min_framecount)
         {
             ret_objs.push_back(std::make_pair(id, m_active_objects[id]));
         }
@@ -381,16 +381,22 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
             // If not updated its missing this frame
             if (!found_update)
             {
+                // if (m_status[m_id_list[*itr]] == DEFAULT || m_status[m_id_list[*itr]] == COMPLETED)
+                // {
+                //     m_framecount[m_id_list[*itr]] = 0;
+                // }
+                // else 
+                // {
+                //     // Estimate new position
+                //     estimate_new_position(m_id_list[*itr]);
+                // }
+
                 // Estimate new position
                 estimate_new_position(m_id_list[*itr]);
+                m_framecount[m_id_list[*itr]] = 0;
 
-                // Mark as dissapeared and reset framecount
+                // Increase disappeared count
                 m_disappeared[m_id_list[*itr]]++;
-
-                if (m_status[m_id_list[*itr]] == DEFAULT)
-                {
-                    m_framecount[m_id_list[*itr]] = 0;
-                }
             }
         }
 
