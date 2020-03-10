@@ -397,6 +397,8 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
 
                 // Increase disappeared count
                 m_disappeared[m_id_list[*itr]]++;
+                if (m_status[m_id_list[*itr]] == READY)
+                    m_status[m_id_list[*itr]] = DEFAULT;
             }
         }
 
