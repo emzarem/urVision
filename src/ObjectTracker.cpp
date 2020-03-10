@@ -36,6 +36,9 @@ static Distance euclidean_distance(const Object& a, const Object& b)
 ObjectTracker::ObjectTracker(Distance distTol, float velLpfCutoff, float targetFps, float maxTimeDisappeared, float minTimeValid, ObjectType trackerType) :
     m_dist_tol(distTol), m_lpfTau(1.0/velLpfCutoff), m_maxTimeDisappeared(maxTimeDisappeared), m_minTimeValid(minTimeValid), m_framerate(targetFps), m_type(trackerType)
 {
+    m_next_id = 0;
+    m_xVelocity = 0;
+    m_yVelocity = 0;
     m_max_dissapeared_frms = (int)(floor(targetFps * m_maxTimeDisappeared));
     m_min_framecount = (int)(ceil(targetFps * m_minTimeValid));
     ROS_INFO("Tracker -- maxDisappearedFrms == %i; minValidFrames == %i", m_max_dissapeared_frms, m_min_framecount);
@@ -85,7 +88,7 @@ bool ObjectTracker::getCompletedObjects(std::vector<std::pair<ObjectID, Object>>
     for (auto id: m_id_list)
     {
         // IF COMPLETED and currently  IN FRAME
-        if (m_status[id] == COMPLETED && m_framecount[id] >= m_min_framecount)
+        if (m_status[id] == COMPLETED)
         {
             ret_objs.push_back(std::make_pair(id, m_active_objects[id]));
         }
@@ -370,6 +373,7 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
                     {
                         // Take the average
                         m_active_objects[m_id_list[*itr]].x =  (m_active_objects[m_id_list[*itr]].x + new_objs[*sub_itr].x) / 2;
+                        m_active_objects[m_id_list[*itr]].y =  (m_active_objects[m_id_list[*itr]].y + new_objs[*sub_itr].y) / 2;
                     }
                 }
             }
@@ -382,9 +386,11 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
 
                 // Mark as dissapeared and reset framecount
                 m_disappeared[m_id_list[*itr]]++;
-                m_framecount[m_id_list[*itr]] = 0;
-                if (m_status[m_id_list[*itr]] == READY)
-                    m_status[m_id_list[*itr]] = DEFAULT;
+
+                if (m_status[m_id_list[*itr]] == DEFAULT)
+                {
+                    m_framecount[m_id_list[*itr]] = 0;
+                }
             }
         }
 
@@ -406,6 +412,7 @@ void ObjectTracker::updateFramerate(float framerate)
 {
     m_max_dissapeared_frms = (int)(floor(framerate * m_maxTimeDisappeared));
     m_min_framecount = (int)(ceil(framerate * m_minTimeValid));
+    m_framerate = framerate;
 }
 
 void ObjectTracker::updateVelocity(float xVelocity, float yVelocity)
@@ -476,12 +483,16 @@ void ObjectTracker::cleanup_dissapeared()
 void ObjectTracker::estimate_new_position(ObjectID id)
 {
     Object& toUpdate = m_active_objects[id];
+    
     // Use global velocity estimate!
-    float dx = m_xVelocity / m_framerate;
-    float dy = m_yVelocity / m_framerate;
+    double currTime = ros::Time::now().toSec();
+    double dt = currTime - toUpdate.timestamp;
+    float dx = m_xVelocity * dt;
+    float dy = m_yVelocity * dt;
+
     toUpdate.x += dx;
     toUpdate.y += dy;
-    toUpdate.timestamp += (double)(1/m_framerate); 
+    toUpdate.timestamp = currTime; 
 }
 
 /* update_active_object

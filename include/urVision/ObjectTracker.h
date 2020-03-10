@@ -132,6 +132,8 @@ class ObjectTracker {
 
         // Object type
         ObjectType m_type;
+
+        double m_lastTimestamp;
   
         /* For Low pass filtering velocity */
         float m_lpfTau;
