@@ -30,6 +30,7 @@ add_service_files(
   DIRECTORY
   srv
   FILES
+  ClearTracker.srv
   QueryWeeds.srv
 )
 

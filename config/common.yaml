@@ -19,3 +19,6 @@ mark_uprooted_service: /mark_uprooted_service
 
 # Queries the top valid weed (does not mark as being processed)
 query_weeds_service: /query_weeds_service
+
+clear_tracker_service: /clear_tracker
+

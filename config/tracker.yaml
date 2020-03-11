@@ -1,7 +1,7 @@
 # Max allowable time disappeared before removing object (seconds)
 max_time_disappeared: 20.0
 # Min time to identify the same weed to be valid (seconds)
-min_time_valid: 1.25
+min_time_valid: 1.5
 
 # Distance tolerance for tracking between frames (in cm)
 distance_tolerance: 8

@@ -4,6 +4,7 @@
 
 // Srv and msg types
 #include <urVision/QueryWeeds.h>
+#include <urVision/ClearTracker.h>
 #include <urGovernor/FetchWeed.h>
 #include <urGovernor/MarkUprooted.h>
 #include <urVision/weedDataArray.h>
@@ -32,6 +33,7 @@ std::string velocityPublisherName;
 std::string fetchWeedServiceName;
 std::string queryWeedServiceName;
 std::string markUprootedServiceName;
+std::string clearTrackerServiceName;
 
 Distance distanceTolerance;
 float maxTimeDisappeared;
@@ -144,6 +146,24 @@ bool mark_uprooted(urGovernor::MarkUprooted::Request &req, urGovernor::MarkUproo
     return retValue;
 }
 
+// mark_uprooted_service
+bool clear_tracker(urVision::ClearTracker::Request &req, urVision::ClearTracker::Response &res)
+{
+    // Delete and re-initialize
+    weedTrackerLock.lock();
+    delete p_weedTracker;
+    p_weedTracker = new ObjectTracker(distanceTolerance, velLpfCutoff, targetFps, maxTimeDisappeared, minTimeValid);
+    weedTrackerLock.unlock();
+
+    // Delete and re-initialize
+    cropTrackerLock.lock();
+    delete p_cropTracker;
+    p_cropTracker = new ObjectTracker(distanceTolerance, velLpfCutoff, targetFps, maxTimeDisappeared, minTimeValid, ObjectType::CROP);
+    cropTrackerLock.unlock();
+
+    return true;
+}
+
 // msg callback
 void new_weed_callback(const urVision::weedDataArray::ConstPtr& msg)
 {
@@ -224,6 +244,7 @@ bool readGeneralParameters(ros::NodeHandle nodeHandle)
     if (!nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
     if (!nodeHandle.getParam("query_weeds_service", queryWeedServiceName)) return false;
     if (!nodeHandle.getParam("mark_uprooted_service", markUprootedServiceName)) return false;
+    if (!nodeHandle.getParam("clear_tracker_service", clearTrackerServiceName)) return false;
 
 
     if (!nodeHandle.getParam("max_time_disappeared", maxTimeDisappeared)) return false;
@@ -270,6 +291,8 @@ int main(int argc, char** argv)
     ros::ServiceServer fetchWeedService = nodeHandle.advertiseService(fetchWeedServiceName, fetch_weed);
     ros::ServiceServer queryWeedService = nodeHandle.advertiseService(queryWeedServiceName, query_weeds);
     ros::ServiceServer markUprootedService = nodeHandle.advertiseService(markUprootedServiceName, mark_uprooted);
+
+    ros::ServiceServer clearTrackerService = nodeHandle.advertiseService(clearTrackerServiceName, clear_tracker);
 
     ros::spin();
 
