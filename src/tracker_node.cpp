@@ -33,7 +33,8 @@ std::string velocityPublisherName;
 std::string fetchWeedServiceName;
 std::string queryWeedServiceName;
 std::string markUprootedServiceName;
-std::string clearTrackerServiceName;
+std::string resetTrackerServiceName;
+std::string stopTrackerServiceName;
 
 Distance distanceTolerance;
 float maxTimeDisappeared;
@@ -71,6 +72,11 @@ bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
     if (req.request_id >= 0)
     {
         weedTrackerLock.lock();
+        if (!p_weedTracker)
+        {
+            weedTrackerLock.unlock();   
+            return false;
+        }
         retValue = p_weedTracker->getObjectByID(top_valid_obj, req.request_id);
         weedTrackerLock.unlock();   
         obj_id = req.request_id;
@@ -78,6 +84,11 @@ bool fetch_weed(urGovernor::FetchWeed::Request &req, urGovernor::FetchWeed::Resp
     else
     {
         weedTrackerLock.lock();
+        if (!p_weedTracker)
+        {
+            weedTrackerLock.unlock();   
+            return false;
+        }
         retValue = p_weedTracker->topValidAndUproot(top_valid_obj, obj_id);
         weedTrackerLock.unlock();
     }
@@ -106,6 +117,11 @@ bool query_weeds(urVision::QueryWeeds::Request &req, urVision::QueryWeeds::Respo
     res.completed_list.clear();
 
     weedTrackerLock.lock();
+    if (!p_weedTracker)
+    {
+        weedTrackerLock.unlock();   
+        return false;
+    }
     retValue = p_weedTracker->getReadyObjects(readyObjects);
     retValue = p_weedTracker->getCompletedObjects(completedObjects);
     weedTrackerLock.unlock();
@@ -135,6 +151,11 @@ bool query_weeds(urVision::QueryWeeds::Request &req, urVision::QueryWeeds::Respo
 bool mark_uprooted(urGovernor::MarkUprooted::Request &req, urGovernor::MarkUprooted::Response &res)
 {
     weedTrackerLock.lock();
+    if (!p_weedTracker)
+    {
+        weedTrackerLock.unlock();   
+        return false;
+    }
     bool retValue = p_weedTracker->markUprooted(req.tracking_id, req.success);
     weedTrackerLock.unlock();
 
@@ -147,18 +168,43 @@ bool mark_uprooted(urGovernor::MarkUprooted::Request &req, urGovernor::MarkUproo
 }
 
 // mark_uprooted_service
-bool clear_tracker(urVision::ClearTracker::Request &req, urVision::ClearTracker::Response &res)
+bool reset_tracker(urVision::ClearTracker::Request &req, urVision::ClearTracker::Response &res)
 {
     // Delete and re-initialize
     weedTrackerLock.lock();
-    delete p_weedTracker;
+    if (p_weedTracker)
+        delete p_weedTracker;
     p_weedTracker = new ObjectTracker(distanceTolerance, velLpfCutoff, targetFps, maxTimeDisappeared, minTimeValid);
     weedTrackerLock.unlock();
 
     // Delete and re-initialize
     cropTrackerLock.lock();
-    delete p_cropTracker;
+    if (p_cropTracker)
+        delete p_cropTracker;
     p_cropTracker = new ObjectTracker(distanceTolerance, velLpfCutoff, targetFps, maxTimeDisappeared, minTimeValid, ObjectType::CROP);
+    cropTrackerLock.unlock();
+
+    return true;
+}
+
+bool stop_tracker(urVision::ClearTracker::Request &req, urVision::ClearTracker::Response &res)
+{
+    // Delete
+    weedTrackerLock.lock();
+    if (p_weedTracker)
+    {
+        delete p_weedTracker;
+        p_weedTracker = NULL;
+    }
+    weedTrackerLock.unlock();
+
+    // Delete
+    cropTrackerLock.lock();
+    if (p_cropTracker)
+    {
+        delete p_cropTracker;
+        p_cropTracker = NULL;
+    }
     cropTrackerLock.unlock();
 
     return true;
@@ -178,6 +224,11 @@ void new_weed_callback(const urVision::weedDataArray::ConstPtr& msg)
     }
 
     weedTrackerLock.lock();
+    if (!p_weedTracker)
+    {
+        weedTrackerLock.unlock();
+        return;
+    }
     p_weedTracker->update(new_objs);
     weedTrackerLock.unlock();
 }
@@ -200,6 +251,11 @@ void new_crop_callback(const urVision::weedDataArray::ConstPtr& msg)
 
     cropTrackerLock.lock();
     // Update the tracker with current objects
+    if (!p_cropTracker)
+    {
+        cropTrackerLock.unlock();
+        return;
+    }
     p_cropTracker->update(new_objs);
     // Get the most recent velocity
     currentVelocity.x = p_cropTracker->getXVelocity();
@@ -213,10 +269,20 @@ void new_crop_callback(const urVision::weedDataArray::ConstPtr& msg)
 void new_framerate_callback(const std_msgs::Float32::ConstPtr& msg)
 {
     weedTrackerLock.lock();
+    if (!p_weedTracker)
+    {
+        weedTrackerLock.unlock();
+        return;
+    }
     p_weedTracker->updateFramerate(msg->data);
     weedTrackerLock.unlock();
 
     cropTrackerLock.lock();
+    if (!p_cropTracker)
+    {
+        cropTrackerLock.unlock();
+        return;
+    }
     p_cropTracker->updateFramerate(msg->data);
     cropTrackerLock.unlock();
 }
@@ -225,10 +291,20 @@ void new_framerate_callback(const std_msgs::Float32::ConstPtr& msg)
 void new_velocity_callback(const geometry_msgs::Vector3::ConstPtr& msg)
 {
     weedTrackerLock.lock();
+    if (!p_weedTracker)
+    {
+        weedTrackerLock.unlock();
+        return;
+    }
     p_weedTracker->updateVelocity(msg->x, msg->y);
     weedTrackerLock.unlock();
 
     cropTrackerLock.lock();
+    if (!p_cropTracker)
+    {
+        cropTrackerLock.unlock();
+        return;
+    }
     p_cropTracker->updateVelocity(msg->x, msg->y);
     cropTrackerLock.unlock();
 }
@@ -244,7 +320,8 @@ bool readGeneralParameters(ros::NodeHandle nodeHandle)
     if (!nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
     if (!nodeHandle.getParam("query_weeds_service", queryWeedServiceName)) return false;
     if (!nodeHandle.getParam("mark_uprooted_service", markUprootedServiceName)) return false;
-    if (!nodeHandle.getParam("clear_tracker_service", clearTrackerServiceName)) return false;
+    if (!nodeHandle.getParam("reset_tracker_service", resetTrackerServiceName)) return false;
+    if (!nodeHandle.getParam("stop_tracker_service", stopTrackerServiceName)) return false;
 
 
     if (!nodeHandle.getParam("max_time_disappeared", maxTimeDisappeared)) return false;
@@ -292,12 +369,9 @@ int main(int argc, char** argv)
     ros::ServiceServer queryWeedService = nodeHandle.advertiseService(queryWeedServiceName, query_weeds);
     ros::ServiceServer markUprootedService = nodeHandle.advertiseService(markUprootedServiceName, mark_uprooted);
 
-    ros::ServiceServer clearTrackerService = nodeHandle.advertiseService(clearTrackerServiceName, clear_tracker);
+    ros::ServiceServer resetTracker = nodeHandle.advertiseService(resetTrackerServiceName, reset_tracker);
+    ros::ServiceServer stopTracker = nodeHandle.advertiseService(stopTrackerServiceName, stop_tracker);
 
     ros::spin();
-
-    weedTrackerLock.lock();
-    delete p_weedTracker;
-    weedTrackerLock.unlock();
 }
 

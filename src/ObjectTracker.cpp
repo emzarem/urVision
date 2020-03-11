@@ -381,24 +381,34 @@ void ObjectTracker::update(const std::vector<Object>& new_objs)
             // If not updated its missing this frame
             if (!found_update)
             {
-                // if (m_status[m_id_list[*itr]] == DEFAULT || m_status[m_id_list[*itr]] == COMPLETED)
-                // {
-                //     m_framecount[m_id_list[*itr]] = 0;
-                // }
-                // else 
-                // {
-                //     // Estimate new position
-                //     estimate_new_position(m_id_list[*itr]);
-                // }
-
-                // Estimate new position
-                estimate_new_position(m_id_list[*itr]);
-                m_framecount[m_id_list[*itr]] = 0;
-
-                // Increase disappeared count
-                m_disappeared[m_id_list[*itr]]++;
-                if (m_status[m_id_list[*itr]] == READY)
-                    m_status[m_id_list[*itr]] = DEFAULT;
+                // Get reference to this status
+                enum ObjectStatus prevStatus = m_status[m_id_list[*itr]];
+                switch (prevStatus)
+                {
+                case DEFAULT:
+                    // do not estimate state ...
+                    m_framecount[m_id_list[*itr]] = 0;
+                    m_disappeared[m_id_list[*itr]]++;
+                    break;
+                case READY:
+                    estimate_new_position(m_id_list[*itr]);
+                    // do NOT change framecount
+                    // Reset status, without changing framecount
+                    m_disappeared[m_id_list[*itr]]++;
+                    break;
+                case IN_PROGRESS:
+                    estimate_new_position(m_id_list[*itr]);
+                    // do NOT change framecount
+                    m_disappeared[m_id_list[*itr]]++;
+                    break;
+                case COMPLETED:
+                    estimate_new_position(m_id_list[*itr]);
+                    m_framecount[m_id_list[*itr]] = 0;
+                    m_disappeared[m_id_list[*itr]]++;
+                    break;          
+                default:
+                    break;
+                }
             }
         }
 
@@ -495,8 +505,8 @@ void ObjectTracker::estimate_new_position(ObjectID id)
     // Use global velocity estimate!
     double currTime = ros::Time::now().toSec();
     double dt = currTime - toUpdate.timestamp;
-    float dx = m_xVelocity * dt;
-    float dy = m_yVelocity * dt;
+    float dx = 1.0*(m_xVelocity * dt);
+    float dy = 1.0*(m_yVelocity * dt);
 
     toUpdate.x += dx;
     toUpdate.y += dy;

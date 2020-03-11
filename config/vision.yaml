@@ -37,9 +37,9 @@ blur_kernel_size: 15
 
 # Color thresholding
 # Hue 30-90 should be green ...
-low_hue: 45
-low_sat: 55
-low_value: 55
+low_hue: 40
+low_sat: 50
+low_value: 50
 high_hue: 90
 
 # Morph operations
