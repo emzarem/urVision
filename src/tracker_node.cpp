@@ -7,6 +7,8 @@
 #include <urVision/ClearTracker.h>
 #include <urGovernor/FetchWeed.h>
 #include <urGovernor/MarkUprooted.h>
+#include <urGovernor/RemoveWeed.h>
+
 #include <urVision/weedDataArray.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/Vector3.h>
@@ -33,6 +35,8 @@ std::string velocityPublisherName;
 std::string fetchWeedServiceName;
 std::string queryWeedServiceName;
 std::string markUprootedServiceName;
+std::string removeWeedServiceName;
+
 std::string resetTrackerServiceName;
 std::string stopTrackerServiceName;
 
@@ -163,6 +167,21 @@ bool mark_uprooted(urGovernor::MarkUprooted::Request &req, urGovernor::MarkUproo
     {
         ROS_DEBUG("mark_uprooted_service: Issues with calls to tracker.");
     }
+
+    return retValue;
+}
+
+// Deregister object
+bool remove_object(urGovernor::RemoveWeed::Request &req, urGovernor::RemoveWeed::Response &res)
+{
+    weedTrackerLock.lock();
+    if (!p_weedTracker)
+    {
+        weedTrackerLock.unlock();   
+        return false;
+    }
+    bool retValue = p_weedTracker->remove_object(req.tracking_id);
+    weedTrackerLock.unlock();
 
     return retValue;
 }
@@ -320,6 +339,8 @@ bool readGeneralParameters(ros::NodeHandle nodeHandle)
     if (!nodeHandle.getParam("fetch_weed_service", fetchWeedServiceName)) return false;
     if (!nodeHandle.getParam("query_weeds_service", queryWeedServiceName)) return false;
     if (!nodeHandle.getParam("mark_uprooted_service", markUprootedServiceName)) return false;
+    if (!nodeHandle.getParam("remove_weed_service", removeWeedServiceName)) return false;
+
     if (!nodeHandle.getParam("reset_tracker_service", resetTrackerServiceName)) return false;
     if (!nodeHandle.getParam("stop_tracker_service", stopTrackerServiceName)) return false;
 
@@ -368,6 +389,7 @@ int main(int argc, char** argv)
     ros::ServiceServer fetchWeedService = nodeHandle.advertiseService(fetchWeedServiceName, fetch_weed);
     ros::ServiceServer queryWeedService = nodeHandle.advertiseService(queryWeedServiceName, query_weeds);
     ros::ServiceServer markUprootedService = nodeHandle.advertiseService(markUprootedServiceName, mark_uprooted);
+    ros::ServiceServer rmWeedService = nodeHandle.advertiseService(removeWeedServiceName, remove_object);
 
     ros::ServiceServer resetTracker = nodeHandle.advertiseService(resetTrackerServiceName, reset_tracker);
     ros::ServiceServer stopTracker = nodeHandle.advertiseService(stopTrackerServiceName, stop_tracker);

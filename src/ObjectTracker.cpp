@@ -478,6 +478,27 @@ void ObjectTracker::deregister_object(const ObjectID id)
     }
 }
 
+/* deregister_object
+ *      @brief removes object with id from registry
+ */
+bool ObjectTracker::remove_object(const ObjectID id)
+{
+    if (object_count() == 0)
+        return false;
+
+    auto itr =  m_active_objects.find(id);
+
+    if (itr == m_active_objects.end()) 
+    {
+        return false;
+    } 
+    else 
+    {
+        deregister_object(id);
+        return true;
+    }
+}
+
 
 /* cleanup_dissapeared
  *      @brief removes any objects whose dissapeared value > max_dissapeared

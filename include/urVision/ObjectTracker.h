@@ -108,9 +108,11 @@ class ObjectTracker {
         void updateFramerate(float framerate);
         void updateVelocity(float xVelocity, float yVelocity);
 
+        bool remove_object(const ObjectID id);
+
     private:
-        ObjectID register_object(const Object& obj);
         void deregister_object(const ObjectID id);
+        ObjectID register_object(const Object& obj);
         void cleanup_dissapeared();
         void update_active_object(ObjectID id, const Object& new_obj);
         void estimate_new_position(ObjectID id);
